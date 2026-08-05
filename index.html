@@ -1,49 +1,896 @@
-/* ============================================================================
-   てけいマスター — AIせんせい 修正パッチ（2026-08 時点の Gemini API 仕様に対応）
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>てけいマスター - Te-Form Master</title>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
+        }
+        ruby { ruby-position: over; }
+        rt { font-size: 0.65em; color: #2563eb; font-weight: 600; line-height: 1.2; }
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-3 sm:p-6 bg-slate-50 text-slate-900">
 
-   【貼り方】
-   index.html の <script> 内にある
-        // 安定版 Gemini API 呼び出し（1.5-flash / 2.0-flash）
-        async function callGeminiAPI(userPrompt, systemPrompt = "") { ... }
-   の関数まるごと（コメント行から閉じ括弧まで）を削除し、
-   同じ場所にこのファイルの中身を貼り付けてください。
+    <header class="w-full max-w-2xl flex items-center justify-between bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-slate-200/80 mb-4 sticky top-2 z-40">
+        <div class="flex items-center space-x-2">
+            <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-md shadow-blue-500/20">て</div>
+            <div>
+                <h1 class="text-lg font-bold leading-tight text-slate-800">てけいマスター</h1>
+                <p class="text-xs text-slate-500">Japanese Te-Form Master</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="text-lg">🌐</span>
+            <select id="language-select" onchange="setLanguage(this.value)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-medium py-1.5 px-2.5 rounded-lg border-0 cursor-pointer focus:ring-2 focus:ring-blue-500 transition outline-none">
+                <option value="ja">日本語（じしょけい）</option>
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="vi">Tiếng Việt</option>
+                <option value="id">Bahasa Indonesia</option>
+                <option value="km">ភាសាខ្មែរ</option>
+                <option value="uz">Oʻzbekcha</option>
+            </select>
+        </div>
+    </header>
 
-   ※ STORAGE_KEY と getSavedApiKey() は既存のものをそのまま使います。
-     重複宣言になるので、このファイルには意図的に含めていません。
-============================================================================ */
+    <main class="w-full max-w-2xl flex-1 flex flex-col">
 
-const MODEL_CACHE_KEY = "tekei_master_gemini_model";
-const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+        <nav class="grid grid-cols-5 gap-1 p-1 bg-slate-200/70 rounded-xl mb-4 text-xs font-semibold text-slate-600">
+            <button onclick="switchTab('quiz')" id="tab-quiz" class="py-2 rounded-lg text-center transition bg-white text-blue-600 shadow-sm font-bold">れんしゅう</button>
+            <button onclick="switchTab('flashcard')" id="tab-flashcard" class="py-2 rounded-lg text-center transition hover:text-slate-900">たんごちょう</button>
+            <button onclick="switchTab('ai')" id="tab-ai" class="py-2 rounded-lg text-center transition hover:text-slate-900">AIせんせい</button>
+            <button onclick="switchTab('rules')" id="tab-rules" class="py-2 rounded-lg text-center transition hover:text-slate-900">ルール</button>
+            <button onclick="switchTab('list')" id="tab-list" class="py-2 rounded-lg text-center transition hover:text-slate-900">リスト</button>
+        </nav>
 
-// 新しい順。ここが全部廃止されても下の自動探索で復旧するので、原則メンテ不要。
-const CANDIDATE_MODELS = [
-    "gemini-3.5-flash-lite", // 既定の思考=ミニマル。速い・安い。この用途に最適
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-2.5-flash"
+        <!-- れんしゅう -->
+        <section id="view-quiz" class="flex-1 flex flex-col space-y-4">
+            <div class="flex items-center justify-between bg-white p-2 rounded-xl border border-slate-200/80 shadow-sm text-xs sm:text-sm">
+                <span class="font-medium text-slate-500 px-2">グループ:</span>
+                <div class="flex space-x-1">
+                    <button onclick="setQuizGroup('all')" id="btn-group-all" class="px-3 py-1 rounded-lg bg-blue-600 text-white font-medium">すべて</button>
+                    <button onclick="setQuizGroup('1')" id="btn-group-1" class="px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">Ⅰ</button>
+                    <button onclick="setQuizGroup('2')" id="btn-group-2" class="px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">Ⅱ</button>
+                    <button onclick="setQuizGroup('3')" id="btn-group-3" class="px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">Ⅲ</button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm flex flex-col items-center text-center relative overflow-hidden">
+                <div class="w-full flex justify-between items-center text-xs text-slate-400 font-medium mb-4">
+                    <span id="quiz-streak">れんぞく: 0</span>
+                    <span id="quiz-group-tag" class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md font-semibold">Ⅰグループ</span>
+                </div>
+                <div id="quiz-verb-kanji" class="text-3xl sm:text-4xl font-bold text-slate-800 my-4 min-h-[60px] flex items-baseline justify-center"></div>
+                <div id="quiz-verb-meaning" class="text-sm text-slate-500 font-medium mb-6"></div>
+                <div id="quiz-options" class="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2"></div>
+                <div id="quiz-feedback" class="w-full mt-4 p-3 rounded-xl text-left text-xs sm:text-sm hidden transition-all duration-300"></div>
+            </div>
+
+            <button onclick="nextQuizQuestion()" id="btn-next-quiz" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md shadow-blue-500/20 transition flex items-center justify-center space-x-2">
+                <span>つぎの もんだい ➔</span>
+            </button>
+        </section>
+
+        <!-- たんごちょう -->
+        <section id="view-flashcard" class="hidden flex-1 flex flex-col space-y-4">
+            <div class="flex items-center justify-between bg-white p-2 rounded-xl border border-slate-200/80 shadow-sm text-xs sm:text-sm">
+                <span class="font-medium text-slate-500 px-2">グループ:</span>
+                <div class="flex space-x-1">
+                    <button onclick="setFlashcardGroup('all')" id="fc-group-all" class="px-3 py-1 rounded-lg bg-blue-600 text-white font-medium">すべて</button>
+                    <button onclick="setFlashcardGroup('1')" id="fc-group-1" class="px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">Ⅰ</button>
+                    <button onclick="setFlashcardGroup('2')" id="fc-group-2" class="px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">Ⅱ</button>
+                    <button onclick="setFlashcardGroup('3')" id="fc-group-3" class="px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">Ⅲ</button>
+                </div>
+            </div>
+
+            <div class="perspective-1000 w-full cursor-pointer" onclick="flipFlashcard()">
+                <div id="flashcard-inner" class="transform-style-3d relative w-full h-72 sm:h-80 rounded-2xl shadow-sm border border-slate-200/80 bg-white">
+                    <div class="backface-hidden absolute inset-0 w-full h-full p-6 flex flex-col items-center justify-between text-center rounded-2xl bg-white">
+                        <div class="w-full flex justify-between items-center text-xs text-slate-400 font-medium">
+                            <span id="fc-counter">1 / 1</span>
+                            <span id="fc-group-badge" class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-semibold">Ⅰグループ</span>
+                        </div>
+                        <div class="my-auto">
+                            <div id="fc-front-kanji" class="text-4xl sm:text-5xl font-bold text-slate-800 mb-2"></div>
+                            <p id="fc-front-meaning" class="text-sm text-slate-500 font-medium"></p>
+                        </div>
+                        <p class="text-xs text-blue-500 font-medium">タップして てけいを みる 🔄</p>
+                    </div>
+                    <div class="backface-hidden rotate-y-180 absolute inset-0 w-full h-full p-6 flex flex-col items-center justify-between text-center rounded-2xl bg-blue-50/90 border border-blue-200/80 backdrop-blur-md">
+                        <div class="w-full flex justify-between items-center text-xs text-blue-400 font-medium">
+                            <span>てけい</span>
+                            <span id="fc-back-group-badge" class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md font-semibold">Ⅰグループ</span>
+                        </div>
+                        <div class="my-auto">
+                            <div id="fc-back-te" class="text-4xl sm:text-5xl font-extrabold text-blue-600 mb-3"></div>
+                            <div id="fc-back-rule" class="bg-white/90 border border-blue-100 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm text-slate-700 font-semibold shadow-sm inline-block"></div>
+                        </div>
+                        <p class="text-xs text-slate-400 font-medium">タップして もどる 🔄</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="prevFlashcard()" class="py-3 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-xl border border-slate-200 shadow-sm transition flex items-center justify-center space-x-1"><span>⬅️ まえへ</span></button>
+                <button onclick="nextFlashcard()" class="py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md shadow-blue-500/20 transition flex items-center justify-center space-x-1"><span>つぎへ ➡️</span></button>
+            </div>
+        </section>
+
+        <!-- AIせんせい -->
+        <section id="view-ai" class="hidden flex-1 flex flex-col space-y-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-2xl">🤖</span>
+                        <div>
+                            <h2 class="font-bold text-slate-800">AIせんせい</h2>
+                            <p class="text-xs text-slate-500">さくぶんの チェックや どうしの しつもんが できます。</p>
+                        </div>
+                    </div>
+                    <button onclick="openApiKeyModal()" class="px-3 py-1.5 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold border border-amber-200 rounded-xl transition flex items-center space-x-1">
+                        <span>🔑 APIキー設定</span>
+                    </button>
+                </div>
+
+                <div id="key-status-badge" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-between"></div>
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-slate-700">✍️ じぶんの ぶんを チェック</label>
+                    <textarea id="ai-sentence-input" rows="2" placeholder="れい：あさ おきて、ごはんを たべます。" class="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"></textarea>
+                    <button onclick="checkSentenceWithAI()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-sm transition">ぶんを チェックする</button>
+                </div>
+
+                <hr class="border-slate-100">
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-slate-700">❓ どんなどうしでも「〇〇の てけいは？」ときく</label>
+                    <div class="flex space-x-2">
+                        <input id="ai-verb-input" type="text" placeholder="れい：あそびます / かんがえます" class="flex-1 p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                        <button onclick="askAIVerbTeForm()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm rounded-xl shadow-sm transition whitespace-nowrap">しつもん</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="ai-response-card" class="bg-blue-50/80 border border-blue-200 p-4 rounded-2xl hidden transition-all duration-300">
+                <div class="flex items-start space-x-2">
+                    <span class="text-xl">💡</span>
+                    <div id="ai-response-text" class="text-sm text-slate-800 font-medium whitespace-pre-line leading-relaxed"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ルール -->
+        <section id="view-rules" class="hidden flex-1 flex flex-col space-y-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                <h2 class="font-bold text-slate-800 text-base border-b border-slate-100 pb-2">てけいのかたち ルール</h2>
+                <div class="space-y-2">
+                    <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-md">Ⅰグループ</span>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><p class="font-bold text-slate-700">〜い・ち・り・ます ➔ <span class="text-blue-600">〜って</span></p><p class="text-slate-500">あいます ➔ あって / まちます ➔ まって</p></div>
+                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><p class="font-bold text-slate-700">〜み・び・に・ます ➔ <span class="text-blue-600">〜んで</span></p><p class="text-slate-500">のみます ➔ のんで / しにます ➔ しんで</p></div>
+                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><p class="font-bold text-slate-700">〜き・ます ➔ <span class="text-blue-600">〜いて</span></p><p class="text-slate-500">かきます ➔ かいて</p></div>
+                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><p class="font-bold text-slate-700">〜ぎ・ます ➔ <span class="text-blue-600">〜いで</span></p><p class="text-slate-500">いそぎます ➔ いそいで</p></div>
+                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><p class="font-bold text-slate-700">〜し・ます ➔ <span class="text-blue-600">〜して</span></p><p class="text-slate-500">はなします ➔ はなして</p></div>
+                        <div class="p-2.5 bg-amber-50 rounded-xl border border-amber-200/60"><p class="font-bold text-amber-800">⚠️ れいがい（Exception）</p><p class="text-amber-700">いきます ➔ <span class="font-bold">いって</span></p></div>
+                    </div>
+                </div>
+                <div class="space-y-2 pt-2 border-t border-slate-100">
+                    <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-md">Ⅱグループ</span>
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+                        <p class="font-bold text-slate-700">「ます」をとって <span class="text-blue-600 font-bold">「て」</span>をつける</p>
+                        <p class="text-slate-500 mt-1">たべます ➔ たべて / みます ➔ みて / おきます ➔ おきて</p>
+                    </div>
+                </div>
+                <div class="space-y-2 pt-2 border-t border-slate-100">
+                    <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded-md">Ⅲグループ</span>
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
+                        <p class="font-bold text-slate-700">きます ➔ <span class="text-blue-600">きて</span></p>
+                        <p class="font-bold text-slate-700">します ➔ <span class="text-blue-600">して</span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- リスト -->
+        <section id="view-list" class="hidden flex-1 flex flex-col space-y-3">
+            <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-2">
+                <input id="list-search-input" oninput="renderVerbList()" type="text" placeholder="けんさく（例: たべます / 食べる / eat）" class="flex-1 p-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                <select id="list-group-filter" onchange="renderVerbList()" class="p-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition">
+                    <option value="all">すべての グループ</option>
+                    <option value="1">Ⅰグループ</option>
+                    <option value="2">Ⅱグループ</option>
+                    <option value="3">Ⅲグループ</option>
+                </select>
+            </div>
+            <div id="list-count" class="text-xs text-slate-400 px-1"></div>
+            <div id="verb-list-container" class="space-y-2 overflow-y-auto max-h-[550px] pr-1"></div>
+        </section>
+
+    </main>
+
+    <!-- APIキー設定モーダル -->
+    <div id="api-key-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-100">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base">🔑 Gemini APIキー設定</h3>
+                <button onclick="closeApiKeyModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed">
+                Gemini APIキーを登録すると、AI添削機能が使えます。<br>
+                <b>🔒 保存場所:</b> キーはお使いの端末のブラウザ（localStorage）にそのまま保存されます。サーバーには送られませんが、共用のパソコンでは使い終わったら「消去」してください。
+            </p>
+            <input id="api-key-input" type="text" placeholder="AIzaSy..." class="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none font-mono">
+            <div class="flex space-x-2 pt-2">
+                <button onclick="saveApiKey()" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-sm transition">保存する</button>
+                <button onclick="runGeminiSelfTest()" class="py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold text-sm rounded-xl transition">接続テスト</button>
+                <button onclick="clearApiKey()" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-sm rounded-xl transition">消去</button>
+            </div>
+            <div id="api-key-test-result" class="text-xs whitespace-pre-line text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3 hidden"></div>
+        </div>
+    </div>
+
+    <footer class="mt-6 text-center text-xs text-slate-400">てけいマスター &copy; Japanese Learning Tool</footer>
+
+<script>
+/* ============================================================
+   1. 動詞データ
+   て形・ルール・誤答は下の関数で自動生成するため、ここには持たない
+   （手入力データを減らすほど、活用の書き間違いが起きなくなる）
+   k=表記(ルビつき) / m=ます形(かな) / g=グループ / ja=じしょけい
+   ============================================================ */
+const VERBS = [
+// ---- Ⅰグループ ----
+{k:"<ruby>会<rt>あ</rt></ruby>います", m:"あいます", g:1, ja:"会う", en:"to meet", zh:"见面", vi:"gặp", id:"bertemu", km:"ជួប", uz:"uchrashmoq"},
+{k:"<ruby>洗<rt>あら</rt></ruby>います", m:"あらいます", g:1, ja:"洗う", en:"to wash", zh:"洗", vi:"rửa", id:"mencuci", km:"លាង", uz:"yuvmoq"},
+{k:"<ruby>言<rt>い</rt></ruby>います", m:"いいます", g:1, ja:"言う", en:"to say", zh:"说", vi:"nói", id:"berkata", km:"និយាយ", uz:"aytmoq"},
+{k:"<ruby>行<rt>い</rt></ruby>きます", m:"いきます", g:1, ja:"行く", en:"to go", zh:"去", vi:"đi", id:"pergi", km:"ទៅ", uz:"bormoq"},
+{k:"<ruby>急<rt>いそ</rt></ruby>ぎます", m:"いそぎます", g:1, ja:"急ぐ", en:"to hurry", zh:"着急", vi:"vội", id:"bergegas", km:"ប្រញាប់", uz:"shoshilmoq"},
+{k:"<ruby>動<rt>うご</rt></ruby>きます", m:"うごきます", g:1, ja:"動く", en:"to move", zh:"动", vi:"di chuyển", id:"bergerak", km:"ធ្វើចលនា", uz:"harakatlanmoq"},
+{k:"<ruby>歌<rt>うた</rt></ruby>います", m:"うたいます", g:1, ja:"歌う", en:"to sing", zh:"唱歌", vi:"hát", id:"menyanyi", km:"ច្រៀង", uz:"kuylamoq"},
+{k:"<ruby>売<rt>う</rt></ruby>ります", m:"うります", g:1, ja:"売る", en:"to sell", zh:"卖", vi:"bán", id:"menjual", km:"លក់", uz:"sotmoq"},
+{k:"<ruby>押<rt>お</rt></ruby>します", m:"おします", g:1, ja:"押す", en:"to push", zh:"推", vi:"ấn", id:"menekan", km:"រុញ", uz:"bosmoq"},
+{k:"<ruby>思<rt>おも</rt></ruby>い<ruby>出<rt>だ</rt></ruby>します", m:"おもいだします", g:1, ja:"思い出す", en:"to recall", zh:"想起", vi:"nhớ lại", id:"teringat", km:"នឹកឃើញ", uz:"eslamoq"},
+{k:"<ruby>思<rt>おも</rt></ruby>います", m:"おもいます", g:1, ja:"思う", en:"to think", zh:"想", vi:"nghĩ", id:"berpikir", km:"គិត", uz:"o'ylamoq"},
+{k:"<ruby>泳<rt>およ</rt></ruby>ぎます", m:"およぎます", g:1, ja:"泳ぐ", en:"to swim", zh:"游泳", vi:"bơi", id:"berenang", km:"ហែលទឹក", uz:"suzmoq"},
+{k:"<ruby>終<rt>お</rt></ruby>わります", m:"おわります", g:1, ja:"終わる", en:"to finish", zh:"结束", vi:"kết thúc", id:"selesai", km:"បញ្ចប់", uz:"tugamoq"},
+{k:"<ruby>買<rt>か</rt></ruby>います", m:"かいます", g:1, ja:"買う", en:"to buy", zh:"买", vi:"mua", id:"membeli", km:"ទិញ", uz:"sotib olmoq"},
+{k:"<ruby>返<rt>かえ</rt></ruby>します", m:"かえします", g:1, ja:"返す", en:"to give back", zh:"归还", vi:"trả lại", id:"mengembalikan", km:"សងវិញ", uz:"qaytarmoq"},
+{k:"<ruby>帰<rt>かえ</rt></ruby>ります", m:"かえります", g:1, ja:"帰る", en:"to go home", zh:"回家", vi:"về", id:"pulang", km:"ត្រឡប់", uz:"qaytmoq"},
+{k:"かかります", m:"かかります", g:1, ja:"かかる", en:"to take (time/money)", zh:"花费", vi:"mất (thời gian)", id:"memerlukan", km:"ចំណាយ", uz:"sarflanmoq"},
+{k:"<ruby>書<rt>か</rt></ruby>きます", m:"かきます", g:1, ja:"書く", en:"to write", zh:"写", vi:"viết", id:"menulis", km:"សរសេរ", uz:"yozmoq"},
+{k:"<ruby>貸<rt>か</rt></ruby>します", m:"かします", g:1, ja:"貸す", en:"to lend", zh:"借出", vi:"cho mượn", id:"meminjamkan", km:"ឱ្យខ្ចី", uz:"qarz bermoq"},
+{k:"<ruby>勝<rt>か</rt></ruby>ちます", m:"かちます", g:1, ja:"勝つ", en:"to win", zh:"赢", vi:"thắng", id:"menang", km:"ឈ្នះ", uz:"yutmoq"},
+{k:"<ruby>通<rt>かよ</rt></ruby>います", m:"かよいます", g:1, ja:"通う", en:"to commute", zh:"往返", vi:"đi lại", id:"bolak-balik", km:"ធ្វើដំណើរទៅមក", uz:"qatnamoq"},
+{k:"がんばります", m:"がんばります", g:1, ja:"がんばる", en:"to do one's best", zh:"努力", vi:"cố gắng", id:"berusaha", km:"ខិតខំ", uz:"harakat qilmoq"},
+{k:"<ruby>聞<rt>き</rt></ruby>きます", m:"ききます", g:1, ja:"聞く", en:"to listen", zh:"听", vi:"nghe", id:"mendengar", km:"ស្តាប់", uz:"tinglamoq"},
+{k:"<ruby>切<rt>き</rt></ruby>ります", m:"きります", g:1, ja:"切る", en:"to cut", zh:"切", vi:"cắt", id:"memotong", km:"កាត់", uz:"kesmoq"},
+{k:"<ruby>消<rt>け</rt></ruby>します", m:"けします", g:1, ja:"消す", en:"to turn off", zh:"关掉", vi:"tắt", id:"mematikan", km:"បិទ", uz:"o'chirmoq"},
+{k:"<ruby>咲<rt>さ</rt></ruby>きます", m:"さきます", g:1, ja:"咲く", en:"to bloom", zh:"开花", vi:"nở", id:"mekar", km:"រីក", uz:"gullamoq"},
+{k:"<ruby>触<rt>さわ</rt></ruby>ります", m:"さわります", g:1, ja:"触る", en:"to touch", zh:"触摸", vi:"sờ", id:"menyentuh", km:"ប៉ះ", uz:"tegmoq"},
+{k:"<ruby>死<rt>し</rt></ruby>にます", m:"しにます", g:1, ja:"死ぬ", en:"to die", zh:"死", vi:"chết", id:"mati", km:"ស្លាប់", uz:"o'lmoq"},
+{k:"<ruby>知<rt>し</rt></ruby>ります", m:"しります", g:1, ja:"知る", en:"to know", zh:"知道", vi:"biết", id:"tahu", km:"ដឹង", uz:"bilmoq"},
+{k:"<ruby>吸<rt>す</rt></ruby>います", m:"すいます", g:1, ja:"吸う", en:"to smoke / inhale", zh:"吸", vi:"hút", id:"menghisap", km:"ជក់", uz:"chekmoq"},
+{k:"<ruby>住<rt>す</rt></ruby>みます", m:"すみます", g:1, ja:"住む", en:"to live", zh:"居住", vi:"sống", id:"tinggal", km:"រស់នៅ", uz:"yashamoq"},
+{k:"<ruby>座<rt>すわ</rt></ruby>ります", m:"すわります", g:1, ja:"座る", en:"to sit", zh:"坐", vi:"ngồi", id:"duduk", km:"អង្គុយ", uz:"o'tirmoq"},
+{k:"<ruby>立<rt>た</rt></ruby>ちます", m:"たちます", g:1, ja:"立つ", en:"to stand", zh:"站立", vi:"đứng", id:"berdiri", km:"ឈរ", uz:"turmoq"},
+{k:"<ruby>出<rt>だ</rt></ruby>します", m:"だします", g:1, ja:"出す", en:"to take out / submit", zh:"拿出", vi:"nộp", id:"mengeluarkan", km:"យកចេញ", uz:"chiqarmoq"},
+{k:"<ruby>頼<rt>たの</rt></ruby>みます", m:"たのみます", g:1, ja:"頼む", en:"to request", zh:"拜托", vi:"nhờ", id:"meminta", km:"ពឹងពាក់", uz:"iltimos qilmoq"},
+{k:"<ruby>違<rt>ちが</rt></ruby>います", m:"ちがいます", g:1, ja:"違う", en:"to differ", zh:"不同", vi:"khác", id:"berbeda", km:"ខុស", uz:"farq qilmoq"},
+{k:"<ruby>使<rt>つか</rt></ruby>います", m:"つかいます", g:1, ja:"使う", en:"to use", zh:"使用", vi:"dùng", id:"menggunakan", km:"ប្រើ", uz:"ishlatmoq"},
+{k:"<ruby>着<rt>つ</rt></ruby>きます", m:"つきます", g:1, ja:"着く", en:"to arrive", zh:"到达", vi:"đến", id:"tiba", km:"មកដល់", uz:"yetib kelmoq"},
+{k:"<ruby>作<rt>つく</rt></ruby>ります", m:"つくります", g:1, ja:"作る", en:"to make", zh:"制作", vi:"làm", id:"membuat", km:"ធ្វើ", uz:"yasamoq"},
+{k:"<ruby>手<rt>て</rt></ruby><ruby>伝<rt>つだ</rt></ruby>います", m:"てつだいます", g:1, ja:"手伝う", en:"to help", zh:"帮忙", vi:"giúp đỡ", id:"membantu", km:"ជួយ", uz:"yordam bermoq"},
+{k:"<ruby>通<rt>とお</rt></ruby>ります", m:"とおります", g:1, ja:"通る", en:"to pass through", zh:"通过", vi:"đi qua", id:"melewati", km:"ឆ្លងកាត់", uz:"o'tmoq"},
+{k:"<ruby>止<rt>と</rt></ruby>まります", m:"とまります", g:1, ja:"止まる", en:"to stop", zh:"停止", vi:"dừng", id:"berhenti", km:"ឈប់", uz:"to'xtamoq"},
+{k:"<ruby>取<rt>と</rt></ruby>ります", m:"とります", g:1, ja:"取る", en:"to take", zh:"拿", vi:"lấy", id:"mengambil", km:"យក", uz:"olmoq"},
+{k:"<ruby>直<rt>なお</rt></ruby>します", m:"なおします", g:1, ja:"直す", en:"to fix", zh:"修理", vi:"sửa", id:"memperbaiki", km:"ជួសជុល", uz:"tuzatmoq"},
+{k:"<ruby>習<rt>なら</rt></ruby>います", m:"ならいます", g:1, ja:"習う", en:"to learn", zh:"学习", vi:"học", id:"belajar", km:"រៀន", uz:"o'rganmoq"},
+{k:"なります", m:"なります", g:1, ja:"なる", en:"to become", zh:"变成", vi:"trở thành", id:"menjadi", km:"ក្លាយជា", uz:"bo'lmoq"},
+{k:"<ruby>脱<rt>ぬ</rt></ruby>ぎます", m:"ぬぎます", g:1, ja:"脱ぐ", en:"to take off (clothes)", zh:"脱", vi:"cởi", id:"melepas", km:"ដោះ", uz:"yechmoq"},
+{k:"<ruby>登<rt>のぼ</rt></ruby>ります", m:"のぼります", g:1, ja:"登る", en:"to climb", zh:"攀登", vi:"leo", id:"mendaki", km:"ឡើង", uz:"chiqmoq"},
+{k:"<ruby>飲<rt>の</rt></ruby>みます", m:"のみます", g:1, ja:"飲む", en:"to drink", zh:"喝", vi:"uống", id:"minum", km:"ផឹក", uz:"ichmoq"},
+{k:"<ruby>乗<rt>の</rt></ruby>ります", m:"のります", g:1, ja:"乗る", en:"to ride", zh:"乘坐", vi:"lên xe", id:"naik", km:"ជិះ", uz:"minmoq"},
+{k:"<ruby>入<rt>はい</rt></ruby>ります", m:"はいります", g:1, ja:"入る", en:"to enter", zh:"进入", vi:"vào", id:"masuk", km:"ចូល", uz:"kirmoq"},
+{k:"<ruby>履<rt>は</rt></ruby>きます", m:"はきます", g:1, ja:"履く", en:"to wear (shoes)", zh:"穿（鞋袜）", vi:"đi (giày)", id:"memakai (bawahan)", km:"ពាក់", uz:"kiymoq"},
+{k:"<ruby>走<rt>はし</rt></ruby>ります", m:"はしります", g:1, ja:"走る", en:"to run", zh:"跑", vi:"chạy", id:"berlari", km:"រត់", uz:"yugurmoq"},
+{k:"<ruby>働<rt>はたら</rt></ruby>きます", m:"はたらきます", g:1, ja:"働く", en:"to work", zh:"工作", vi:"làm việc", id:"bekerja", km:"ធ្វើការ", uz:"ishlamoq"},
+{k:"<ruby>話<rt>はな</rt></ruby>します", m:"はなします", g:1, ja:"話す", en:"to speak", zh:"说话", vi:"nói chuyện", id:"berbicara", km:"និយាយ", uz:"gapirmoq"},
+{k:"<ruby>払<rt>はら</rt></ruby>います", m:"はらいます", g:1, ja:"払う", en:"to pay", zh:"付款", vi:"trả tiền", id:"membayar", km:"បង់ប្រាក់", uz:"to'lamoq"},
+{k:"<ruby>引<rt>ひ</rt></ruby>きます", m:"ひきます", g:1, ja:"引く", en:"to pull", zh:"拉", vi:"kéo", id:"menarik", km:"ទាញ", uz:"tortmoq"},
+{k:"<ruby>吹<rt>ふ</rt></ruby>きます", m:"ふきます", g:1, ja:"吹く", en:"to blow", zh:"吹", vi:"thổi", id:"meniup", km:"ផ្លុំ", uz:"puflamoq"},
+{k:"<ruby>降<rt>ふ</rt></ruby>ります", m:"ふります", g:1, ja:"降る", en:"to fall (rain)", zh:"下（雨）", vi:"mưa rơi", id:"turun (hujan)", km:"ធ្លាក់", uz:"yog'moq"},
+{k:"<ruby>曲<rt>ま</rt></ruby>がります", m:"まがります", g:1, ja:"曲がる", en:"to turn", zh:"拐弯", vi:"rẽ", id:"belok", km:"បត់", uz:"burilmoq"},
+{k:"<ruby>待<rt>ま</rt></ruby>ちます", m:"まちます", g:1, ja:"待つ", en:"to wait", zh:"等待", vi:"chờ", id:"menunggu", km:"រង់ចាំ", uz:"kutmoq"},
+{k:"<ruby>持<rt>も</rt></ruby>ちます", m:"もちます", g:1, ja:"持つ", en:"to hold", zh:"持有", vi:"cầm", id:"memegang", km:"កាន់", uz:"ushlamoq"},
+{k:"もらいます", m:"もらいます", g:1, ja:"もらう", en:"to receive", zh:"收到", vi:"nhận", id:"menerima", km:"ទទួល", uz:"olmoq"},
+{k:"<ruby>役<rt>やく</rt></ruby>に<ruby>立<rt>た</rt></ruby>ちます", m:"やくにたちます", g:1, ja:"役に立つ", en:"to be useful", zh:"有用", vi:"có ích", id:"berguna", km:"មានប្រយោជន៍", uz:"foydali bo'lmoq"},
+{k:"<ruby>休<rt>やす</rt></ruby>みます", m:"やすみます", g:1, ja:"休む", en:"to rest", zh:"休息", vi:"nghỉ", id:"istirahat", km:"សម្រាក", uz:"dam olmoq"},
+{k:"<ruby>呼<rt>よ</rt></ruby>びます", m:"よびます", g:1, ja:"呼ぶ", en:"to call", zh:"呼唤", vi:"gọi", id:"memanggil", km:"ហៅ", uz:"chaqirmoq"},
+{k:"<ruby>読<rt>よ</rt></ruby>みます", m:"よみます", g:1, ja:"読む", en:"to read", zh:"读", vi:"đọc", id:"membaca", km:"អាន", uz:"o'qimoq"},
+{k:"<ruby>分<rt>わ</rt></ruby>かります", m:"わかります", g:1, ja:"分かる", en:"to understand", zh:"明白", vi:"hiểu", id:"mengerti", km:"យល់", uz:"tushunmoq"},
+{k:"<ruby>渡<rt>わた</rt></ruby>します", m:"わたします", g:1, ja:"渡す", en:"to hand over", zh:"递交", vi:"trao", id:"menyerahkan", km:"ប្រគល់", uz:"topshirmoq"},
+{k:"<ruby>渡<rt>わた</rt></ruby>ります", m:"わたります", g:1, ja:"渡る", en:"to cross", zh:"过（街）", vi:"băng qua", id:"menyeberang", km:"ឆ្លង", uz:"kesib o'tmoq"},
+{k:"<ruby>遊<rt>あそ</rt></ruby>びます", m:"あそびます", g:1, ja:"遊ぶ", en:"to play", zh:"玩", vi:"chơi", id:"bermain", km:"លេង", uz:"o'ynamoq"},
+
+// ---- Ⅱグループ ----
+{k:"<ruby>開<rt>あ</rt></ruby>けます", m:"あけます", g:2, ja:"開ける", en:"to open", zh:"打开", vi:"mở", id:"membuka", km:"បើក", uz:"ochmoq"},
+{k:"あげます", m:"あげます", g:2, ja:"あげる", en:"to give", zh:"给", vi:"cho", id:"memberi", km:"ឱ្យ", uz:"bermoq"},
+{k:"<ruby>集<rt>あつ</rt></ruby>めます", m:"あつめます", g:2, ja:"集める", en:"to collect", zh:"收集", vi:"thu thập", id:"mengumpulkan", km:"ប្រមូល", uz:"yig'moq"},
+{k:"<ruby>入<rt>い</rt></ruby>れます", m:"いれます", g:2, ja:"入れる", en:"to put in", zh:"放入", vi:"cho vào", id:"memasukkan", km:"ដាក់ចូល", uz:"solmoq"},
+{k:"<ruby>生<rt>う</rt></ruby>まれます", m:"うまれます", g:2, ja:"生まれる", en:"to be born", zh:"出生", vi:"sinh ra", id:"lahir", km:"កើត", uz:"tug'ilmoq"},
+{k:"<ruby>教<rt>おし</rt></ruby>えます", m:"おしえます", g:2, ja:"教える", en:"to teach", zh:"教", vi:"dạy", id:"mengajar", km:"បង្រៀន", uz:"o'rgatmoq"},
+{k:"<ruby>起<rt>お</rt></ruby>きます", m:"おきます", g:2, ja:"起きる", en:"to get up", zh:"起床", vi:"thức dậy", id:"bangun", km:"ភ្ញាក់", uz:"uyg'onmoq"},
+{k:"<ruby>落<rt>お</rt></ruby>ちます", m:"おちます", g:2, ja:"落ちる", en:"to fall", zh:"掉落", vi:"rơi", id:"jatuh", km:"ធ្លាក់", uz:"tushmoq"},
+{k:"<ruby>覚<rt>おぼ</rt></ruby>えます", m:"おぼえます", g:2, ja:"覚える", en:"to memorize", zh:"记住", vi:"ghi nhớ", id:"menghafal", km:"ចងចាំ", uz:"yodlamoq"},
+{k:"<ruby>降<rt>お</rt></ruby>ります", m:"おります", g:2, ja:"降りる", en:"to get off", zh:"下车", vi:"xuống xe", id:"turun", km:"ចុះ", uz:"tushmoq"},
+{k:"<ruby>変<rt>か</rt></ruby>えます", m:"かえます", g:2, ja:"変える", en:"to change", zh:"改变", vi:"thay đổi", id:"mengubah", km:"ផ្លាស់ប្តូរ", uz:"o'zgartirmoq"},
+{k:"かけます", m:"かけます", g:2, ja:"かける", en:"to make (a call)", zh:"打（电话）", vi:"gọi điện", id:"menelepon", km:"ហៅទូរស័ព្ទ", uz:"qo'ng'iroq qilmoq"},
+{k:"<ruby>借<rt>か</rt></ruby>ります", m:"かります", g:2, ja:"借りる", en:"to borrow", zh:"借入", vi:"mượn", id:"meminjam", km:"ខ្ចី", uz:"qarz olmoq"},
+{k:"<ruby>考<rt>かんが</rt></ruby>えます", m:"かんがえます", g:2, ja:"考える", en:"to consider", zh:"思考", vi:"suy nghĩ", id:"memikirkan", km:"គិតគូរ", uz:"o'ylab ko'rmoq"},
+{k:"<ruby>消<rt>き</rt></ruby>えます", m:"きえます", g:2, ja:"消える", en:"to disappear", zh:"消失", vi:"biến mất", id:"padam", km:"រលត់", uz:"o'chmoq"},
+{k:"<ruby>決<rt>き</rt></ruby>めます", m:"きめます", g:2, ja:"決める", en:"to decide", zh:"决定", vi:"quyết định", id:"memutuskan", km:"សម្រេចចិត្ត", uz:"qaror qilmoq"},
+{k:"<ruby>着<rt>き</rt></ruby>ます", m:"きます", g:2, ja:"着る", en:"to wear", zh:"穿（衣服）", vi:"mặc", id:"memakai (atasan)", km:"ពាក់", uz:"kiymoq"},
+{k:"くれます", m:"くれます", g:2, ja:"くれる", en:"to give (to me)", zh:"给（我）", vi:"cho (tôi)", id:"memberi (saya)", km:"ឱ្យ(ខ្ញុំ)", uz:"bermoq"},
+{k:"<ruby>閉<rt>し</rt></ruby>めます", m:"しめます", g:2, ja:"閉める", en:"to close", zh:"关闭", vi:"đóng", id:"menutup", km:"បិទ", uz:"yopmoq"},
+{k:"<ruby>信<rt>しん</rt></ruby>じます", m:"しんじます", g:2, ja:"信じる", en:"to believe", zh:"相信", vi:"tin tưởng", id:"percaya", km:"ជឿ", uz:"ishonmoq"},
+{k:"<ruby>捨<rt>す</rt></ruby>てます", m:"すてます", g:2, ja:"捨てる", en:"to throw away", zh:"扔掉", vi:"vứt", id:"membuang", km:"បោះចោល", uz:"tashlamoq"},
+{k:"<ruby>食<rt>た</rt></ruby>べます", m:"たべます", g:2, ja:"食べる", en:"to eat", zh:"吃", vi:"ăn", id:"makan", km:"ញ៉ាំ", uz:"yemoq"},
+{k:"<ruby>足<rt>た</rt></ruby>ります", m:"たります", g:2, ja:"足りる", en:"to be enough", zh:"足够", vi:"đủ", id:"cukup", km:"គ្រប់គ្រាន់", uz:"yetarli bo'lmoq"},
+{k:"<ruby>疲<rt>つか</rt></ruby>れます", m:"つかれます", g:2, ja:"疲れる", en:"to get tired", zh:"累", vi:"mệt", id:"lelah", km:"នឿយហត់", uz:"charchamoq"},
+{k:"つけます", m:"つけます", g:2, ja:"つける", en:"to turn on", zh:"打开（灯）", vi:"bật", id:"menyalakan", km:"បើក", uz:"yoqmoq"},
+{k:"<ruby>伝<rt>つた</rt></ruby>えます", m:"つたえます", g:2, ja:"伝える", en:"to convey", zh:"传达", vi:"truyền đạt", id:"menyampaikan", km:"ប្រាប់", uz:"yetkazmoq"},
+{k:"<ruby>続<rt>つづ</rt></ruby>けます", m:"つづけます", g:2, ja:"続ける", en:"to continue", zh:"继续", vi:"tiếp tục", id:"melanjutkan", km:"បន្ត", uz:"davom ettirmoq"},
+{k:"<ruby>出<rt>で</rt></ruby>かけます", m:"でかけます", g:2, ja:"出かける", en:"to go out", zh:"出门", vi:"đi ra ngoài", id:"bepergian", km:"ចេញក្រៅ", uz:"tashqariga chiqmoq"},
+{k:"<ruby>出<rt>で</rt></ruby>ます", m:"でます", g:2, ja:"出る", en:"to exit", zh:"出来", vi:"ra khỏi", id:"keluar", km:"ចេញ", uz:"chiqmoq"},
+{k:"<ruby>止<rt>と</rt></ruby>めます", m:"とめます", g:2, ja:"止める", en:"to stop (something)", zh:"停下", vi:"dừng lại", id:"menghentikan", km:"បញ្ឈប់", uz:"to'xtatmoq"},
+{k:"<ruby>並<rt>なら</rt></ruby>べます", m:"ならべます", g:2, ja:"並べる", en:"to line up", zh:"排列", vi:"xếp", id:"menata", km:"រៀបចំ", uz:"terib qo'ymoq"},
+{k:"<ruby>寝<rt>ね</rt></ruby>ます", m:"ねます", g:2, ja:"寝る", en:"to sleep", zh:"睡觉", vi:"ngủ", id:"tidur", km:"គេង", uz:"uxlamoq"},
+{k:"<ruby>乗<rt>の</rt></ruby>り<ruby>換<rt>か</rt></ruby>えます", m:"のりかえます", g:2, ja:"乗り換える", en:"to transfer (train)", zh:"换乘", vi:"đổi xe", id:"pindah kendaraan", km:"ប្តូរជិះ", uz:"almashtirib minmoq"},
+{k:"<ruby>負<rt>ま</rt></ruby>けます", m:"まけます", g:2, ja:"負ける", en:"to lose", zh:"输", vi:"thua", id:"kalah", km:"ចាញ់", uz:"yutqazmoq"},
+{k:"<ruby>見<rt>み</rt></ruby>せます", m:"みせます", g:2, ja:"見せる", en:"to show", zh:"出示", vi:"cho xem", id:"memperlihatkan", km:"បង្ហាញ", uz:"ko'rsatmoq"},
+{k:"<ruby>見<rt>み</rt></ruby>ます", m:"みます", g:2, ja:"見る", en:"to watch", zh:"看", vi:"xem", id:"melihat", km:"មើល", uz:"ko'rmoq"},
+{k:"<ruby>迎<rt>むか</rt></ruby>えます", m:"むかえます", g:2, ja:"迎える", en:"to meet / greet", zh:"迎接", vi:"đón", id:"menjemput", km:"ទទួល", uz:"kutib olmoq"},
+{k:"やめます", m:"やめます", g:2, ja:"やめる", en:"to quit", zh:"放弃", vi:"bỏ", id:"berhenti", km:"ឈប់", uz:"voz kechmoq"},
+{k:"やせます", m:"やせます", g:2, ja:"やせる", en:"to lose weight", zh:"变瘦", vi:"gầy đi", id:"menjadi kurus", km:"ស្គម", uz:"ozmoq"},
+{k:"<ruby>忘<rt>わす</rt></ruby>れます", m:"わすれます", g:2, ja:"忘れる", en:"to forget", zh:"忘记", vi:"quên", id:"lupa", km:"ភ្លេច", uz:"unutmoq"},
+
+// ---- Ⅲグループ ----
+{k:"<ruby>来<rt>き</rt></ruby>ます", m:"きます", g:3, ja:"来る", en:"to come", zh:"来", vi:"đến", id:"datang", km:"មក", uz:"kelmoq"},
+{k:"します", m:"します", g:3, ja:"する", en:"to do", zh:"做", vi:"làm", id:"melakukan", km:"ធ្វើ", uz:"qilmoq"},
+{k:"<ruby>買<rt>か</rt></ruby>い<ruby>物<rt>もの</rt></ruby>します", m:"かいものします", g:3, ja:"買い物する", en:"to shop", zh:"购物", vi:"mua sắm", id:"berbelanja", km:"ទិញឥវ៉ាន់", uz:"xarid qilmoq"},
+{k:"<ruby>食<rt>しょく</rt></ruby><ruby>事<rt>じ</rt></ruby>します", m:"しょくじします", g:3, ja:"食事する", en:"to have a meal", zh:"用餐", vi:"ăn cơm", id:"bersantap", km:"ញ៉ាំអាហារ", uz:"ovqatlanmoq"},
+{k:"<ruby>勉<rt>べん</rt></ruby><ruby>強<rt>きょう</rt></ruby>します", m:"べんきょうします", g:3, ja:"勉強する", en:"to study", zh:"学习", vi:"học", id:"belajar", km:"រៀន", uz:"o'qimoq"},
+{k:"<ruby>練<rt>れん</rt></ruby><ruby>習<rt>しゅう</rt></ruby>します", m:"れんしゅうします", g:3, ja:"練習する", en:"to practice", zh:"练习", vi:"luyện tập", id:"berlatih", km:"អនុវត្ត", uz:"mashq qilmoq"},
+{k:"<ruby>仕<rt>し</rt></ruby><ruby>事<rt>ごと</rt></ruby>します", m:"しごとします", g:3, ja:"仕事する", en:"to work", zh:"工作", vi:"làm việc", id:"bekerja", km:"ធ្វើការ", uz:"ishlamoq"},
+{k:"<ruby>散<rt>さん</rt></ruby><ruby>歩<rt>ぽ</rt></ruby>します", m:"さんぽします", g:3, ja:"散歩する", en:"to take a walk", zh:"散步", vi:"đi dạo", id:"jalan-jalan", km:"ដើរលេង", uz:"sayr qilmoq"},
+{k:"<ruby>予<rt>よ</rt></ruby><ruby>約<rt>やく</rt></ruby>します", m:"よやくします", g:3, ja:"予約する", en:"to reserve", zh:"预约", vi:"đặt trước", id:"memesan", km:"កក់", uz:"band qilmoq"},
+{k:"<ruby>案<rt>あん</rt></ruby><ruby>内<rt>ない</rt></ruby>します", m:"あんないします", g:3, ja:"案内する", en:"to guide", zh:"向导", vi:"hướng dẫn", id:"memandu", km:"ណែនាំផ្លូវ", uz:"yo'l ko'rsatmoq"},
+{k:"<ruby>説<rt>せつ</rt></ruby><ruby>明<rt>めい</rt></ruby>します", m:"せつめいします", g:3, ja:"説明する", en:"to explain", zh:"说明", vi:"giải thích", id:"menjelaskan", km:"ពន្យល់", uz:"tushuntirmoq"},
+{k:"<ruby>翻<rt>ほん</rt></ruby><ruby>訳<rt>やく</rt></ruby>します", m:"ほんやくします", g:3, ja:"翻訳する", en:"to translate", zh:"翻译", vi:"dịch", id:"menerjemahkan", km:"បកប្រែ", uz:"tarjima qilmoq"},
+{k:"<ruby>修<rt>しゅう</rt></ruby><ruby>理<rt>り</rt></ruby>します", m:"しゅうりします", g:3, ja:"修理する", en:"to repair", zh:"修理", vi:"sửa chữa", id:"memperbaiki", km:"ជួសជុល", uz:"ta'mirlamoq"},
+{k:"<ruby>電<rt>でん</rt></ruby><ruby>話<rt>わ</rt></ruby>します", m:"でんわします", g:3, ja:"電話する", en:"to phone", zh:"打电话", vi:"gọi điện", id:"menelepon", km:"ទូរស័ព្ទ", uz:"telefon qilmoq"},
+{k:"<ruby>相<rt>そう</rt></ruby><ruby>談<rt>だん</rt></ruby>します", m:"そうだんします", g:3, ja:"相談する", en:"to consult", zh:"商量", vi:"thảo luận", id:"berkonsultasi", km:"ពិគ្រោះ", uz:"maslahatlashmoq"},
+{k:"<ruby>紹<rt>しょう</rt></ruby><ruby>介<rt>かい</rt></ruby>します", m:"しょうかいします", g:3, ja:"紹介する", en:"to introduce", zh:"介绍", vi:"giới thiệu", id:"memperkenalkan", km:"ណែនាំ", uz:"tanishtirmoq"},
+{k:"<ruby>残<rt>ざん</rt></ruby><ruby>業<rt>ぎょう</rt></ruby>します", m:"ざんぎょうします", g:3, ja:"残業する", en:"to work overtime", zh:"加班", vi:"làm thêm giờ", id:"lembur", km:"ធ្វើការថែមម៉ោង", uz:"qo'shimcha ishlamoq"},
+{k:"<ruby>出<rt>しゅっ</rt></ruby><ruby>張<rt>ちょう</rt></ruby>します", m:"しゅっちょうします", g:3, ja:"出張する", en:"to go on a business trip", zh:"出差", vi:"đi công tác", id:"dinas luar", km:"បេសកកម្ម", uz:"xizmat safariga bormoq"},
+{k:"<ruby>留<rt>りゅう</rt></ruby><ruby>学<rt>がく</rt></ruby>します", m:"りゅうがくします", g:3, ja:"留学する", en:"to study abroad", zh:"留学", vi:"du học", id:"studi di luar negeri", km:"សិក្សានៅបរទេស", uz:"chet elda o'qimoq"},
+{k:"<ruby>結<rt>けっ</rt></ruby><ruby>婚<rt>こん</rt></ruby>します", m:"けっこんします", g:3, ja:"結婚する", en:"to marry", zh:"结婚", vi:"kết hôn", id:"menikah", km:"រៀបការ", uz:"turmush qurmoq"},
+{k:"<ruby>洗<rt>せん</rt></ruby><ruby>濯<rt>たく</rt></ruby>します", m:"せんたくします", g:3, ja:"洗濯する", en:"to do laundry", zh:"洗衣服", vi:"giặt đồ", id:"mencuci baju", km:"បោកខោអាវ", uz:"kir yuvmoq"},
+{k:"<ruby>掃<rt>そう</rt></ruby><ruby>除<rt>じ</rt></ruby>します", m:"そうじします", g:3, ja:"掃除する", en:"to clean", zh:"打扫", vi:"dọn dẹp", id:"membersihkan", km:"សម្អាត", uz:"tozalamoq"},
+{k:"<ruby>運<rt>うん</rt></ruby><ruby>動<rt>どう</rt></ruby>します", m:"うんどうします", g:3, ja:"運動する", en:"to exercise", zh:"运动", vi:"tập thể dục", id:"berolahraga", km:"ហាត់ប្រាណ", uz:"mashq qilmoq"},
+{k:"<ruby>成<rt>せい</rt></ruby><ruby>功<rt>こう</rt></ruby>します", m:"せいこうします", g:3, ja:"成功する", en:"to succeed", zh:"成功", vi:"thành công", id:"sukses", km:"ជោគជ័យ", uz:"muvaffaqiyat qozonmoq"},
+{k:"<ruby>失<rt>しっ</rt></ruby><ruby>敗<rt>ぱい</rt></ruby>します", m:"しっぱいします", g:3, ja:"失敗する", en:"to fail", zh:"失败", vi:"thất bại", id:"gagal", km:"បរាជ័យ", uz:"muvaffaqiyatsizlikka uchramoq"},
+{k:"<ruby>合<rt>ごう</rt></ruby><ruby>格<rt>かく</rt></ruby>します", m:"ごうかくします", g:3, ja:"合格する", en:"to pass (an exam)", zh:"考试合格", vi:"đỗ kỳ thi", id:"lulus", km:"ប្រឡងជាប់", uz:"imtihondan o'tmoq"},
+{k:"<ruby>参<rt>さん</rt></ruby><ruby>加<rt>か</rt></ruby>します", m:"さんかします", g:3, ja:"参加する", en:"to participate", zh:"参加", vi:"tham gia", id:"berpartisipasi", km:"ចូលរួម", uz:"qatnashmoq"},
+{k:"<ruby>輸<rt>ゆ</rt></ruby><ruby>出<rt>しゅつ</rt></ruby>します", m:"ゆしゅつします", g:3, ja:"輸出する", en:"to export", zh:"出口", vi:"xuất khẩu", id:"mengekspor", km:"នាំចេញ", uz:"eksport qilmoq"},
+{k:"<ruby>輸<rt>ゆ</rt></ruby><ruby>入<rt>にゅう</rt></ruby>します", m:"ゆにゅうします", g:3, ja:"輸入する", en:"to import", zh:"进口", vi:"nhập khẩu", id:"mengimpor", km:"នាំចូល", uz:"import qilmoq"},
+{k:"<ruby>発<rt>はつ</rt></ruby><ruby>明<rt>めい</rt></ruby>します", m:"はつめいします", g:3, ja:"発明する", en:"to invent", zh:"发明", vi:"phát minh", id:"menciptakan", km:"បង្កើត", uz:"ixtiro qilmoq"},
+{k:"<ruby>発<rt>はっ</rt></ruby><ruby>見<rt>けん</rt></ruby>します", m:"はっけんします", g:3, ja:"発見する", en:"to discover", zh:"发现", vi:"phát hiện", id:"menemukan", km:"រកឃើញ", uz:"kashf etmoq"}
 ];
 
-// CORS で x-goog-api-key が弾かれる環境なら false にすると ?key= 方式に戻ります
-const USE_HEADER_AUTH = true;
+/* ============================================================
+   2. て形の自動生成（活用ロジック）
+   ============================================================ */
+const I_CHI_RI = "いちり";
+const MI_BI_NI = "みびに";
+
+function teForm(masu, group) {
+    if (group === 3) return masu === "きます" ? "きて" : masu.replace(/します$/, "して");
+    if (group === 2) return masu.replace(/ます$/, "て");
+    if (masu === "いきます") return "いって";
+    const stem = masu.slice(0, -2), last = stem.slice(-1), head = stem.slice(0, -1);
+    if (I_CHI_RI.includes(last)) return head + "って";
+    if (MI_BI_NI.includes(last)) return head + "んで";
+    if (last === "き") return head + "いて";
+    if (last === "ぎ") return head + "いで";
+    if (last === "し") return head + "して";
+    return null;
+}
+
+function teRule(masu, group) {
+    if (group === 3) return masu === "きます" ? "きます ➔ きて" : "します ➔ して";
+    if (group === 2) return "ます ➔ て";
+    if (masu === "いきます") return "れいがい（Exception）";
+    const last = masu.slice(0, -2).slice(-1);
+    if (I_CHI_RI.includes(last)) return "い・ち・り ➔ って";
+    if (MI_BI_NI.includes(last)) return "み・び・に ➔ んで";
+    if (last === "き") return "き ➔ いて";
+    if (last === "ぎ") return "ぎ ➔ いで";
+    if (last === "し") return "し ➔ して";
+    return "";
+}
+
+/** 学習者がやりがちな誤答を作る（クイズの選択肢／作文チェックに使う） */
+function wrongTeForms(masu, group) {
+    const correct = teForm(masu, group);
+    const stem = masu.slice(0, -2);
+    const out = [];
+    if (group === 1) {
+        out.push(stem + "て");
+        const last = stem.slice(-1), head = stem.slice(0, -1);
+        if (I_CHI_RI.includes(last)) out.push(head + "んで", head + "いて");
+        else if (MI_BI_NI.includes(last)) out.push(head + "って", head + "いて");
+        else if (last === "き") out.push(head + "って", head + "いで");
+        else if (last === "ぎ") out.push(head + "いて", head + "って");
+        else if (last === "し") out.push(head + "って", head + "いて", head + "んで");
+        out.push(stem + "って", stem + "んで");   // ます形の語幹に って／んで を付けてしまう誤り
+    } else if (group === 2) {
+        out.push(stem + "って", stem + "んで", stem + "いて");
+    } else {
+        out.push(stem + "って", stem + "んで");
+    }
+    return [...new Set(out)].filter(w => w && w !== correct);
+}
+
+// 全動詞の正しいて形（誤答判定のときに除外するため）
+const CORRECT_TE_SET = new Set(VERBS.map(v => teForm(v.m, v.g)));
+
+/** 誤ったて形 → その動詞 の索引。他の動詞の正解と一致するものは除外する */
+const WRONG_TE_INDEX = (() => {
+    const map = new Map();
+    for (const v of VERBS) {
+        for (const w of wrongTeForms(v.m, v.g)) {
+            if (CORRECT_TE_SET.has(w)) continue;
+            if (!map.has(w)) map.set(w, v);
+        }
+    }
+    return map;
+})();
+
+function plainText(html) {
+    return String(html).replace(/<rt>.*?<\/rt>/g, "").replace(/<[^>]+>/g, "");
+}
+function meaningOf(v) {
+    return v[currentLang] || v.en || "";
+}
+
+/* ============================================================
+   3. 画面の状態
+   ============================================================ */
+const STORAGE_KEY = "tekei_master_gemini_key";
+const MODEL_CACHE_KEY = "tekei_master_gemini_model";
+
+let currentLang = 'ja';
+let currentQuizGroup = 'all';
+let currentFlashcardGroup = 'all';
+let quizStreak = 0;
+let currentQuizVerb = null;
+let flashcardIndex = 0;
+let currentFlashcardList = [];
+
+window.onload = function () {
+    resetQuiz();
+    resetFlashcards();
+    renderVerbList();
+    updateKeyStatusBadge();
+};
 
 function lsGet(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
 function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { } }
+function getSavedApiKey() { return lsGet(STORAGE_KEY); }
+
+function openApiKeyModal() {
+    document.getElementById('api-key-input').value = getSavedApiKey();
+    document.getElementById('api-key-test-result').classList.add('hidden');
+    document.getElementById('api-key-modal').classList.remove('hidden');
+}
+function closeApiKeyModal() {
+    document.getElementById('api-key-modal').classList.add('hidden');
+}
+function saveApiKey() {
+    const key = document.getElementById('api-key-input').value.trim();
+    if (key) { lsSet(STORAGE_KEY, key); showTestResult("✅ APIキーを保存しました。「接続テスト」で確認できます。"); }
+    else { lsDel(STORAGE_KEY); showTestResult("APIキーを消去しました。"); }
+    updateKeyStatusBadge();
+}
+function clearApiKey() {
+    lsDel(STORAGE_KEY); lsDel(MODEL_CACHE_KEY);
+    document.getElementById('api-key-input').value = "";
+    showTestResult("APIキーを消去しました。");
+    updateKeyStatusBadge();
+}
+function showTestResult(text) {
+    const el = document.getElementById('api-key-test-result');
+    if (!el) return;
+    el.innerText = text;
+    el.classList.remove('hidden');
+}
+function updateKeyStatusBadge() {
+    const badge = document.getElementById('key-status-badge');
+    if (!badge) return;
+    if (getSavedApiKey()) {
+        badge.className = "text-xs font-medium px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-between";
+        badge.innerHTML = '<span>🟢 Gemini APIキー設定済み（AIモード）</span><button onclick="clearApiKey()" class="underline text-[11px] text-slate-500 hover:text-slate-700">解除</button>';
+    } else {
+        badge.className = "text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-between";
+        badge.innerHTML = '<span>⚪️ APIキー未設定（アプリ内蔵のチェック機能で動作）</span><button onclick="openApiKeyModal()" class="underline text-[11px] text-blue-600 font-bold">キーを登録</button>';
+    }
+}
+
+function switchTab(tabId) {
+    ['quiz', 'flashcard', 'ai', 'rules', 'list'].forEach(t => {
+        const el = document.getElementById('view-' + t);
+        const btn = document.getElementById('tab-' + t);
+        if (el) el.classList.add('hidden');
+        if (btn) btn.className = "py-2 rounded-lg text-center transition hover:text-slate-900";
+    });
+    const activeEl = document.getElementById('view-' + tabId);
+    const activeBtn = document.getElementById('tab-' + tabId);
+    if (activeEl) activeEl.classList.remove('hidden');
+    if (activeBtn) activeBtn.className = "py-2 rounded-lg text-center transition bg-white text-blue-600 shadow-sm font-bold";
+}
+
+function setLanguage(lang) {
+    currentLang = lang;
+    renderQuizCardMeaning();
+    renderFlashcardMeaning();
+    renderVerbList();
+}
+
+function getFilteredVerbs(group) {
+    return group === 'all' ? VERBS : VERBS.filter(v => v.g === parseInt(group));
+}
+
+/* ============================================================
+   4. れんしゅう（クイズ）
+   ============================================================ */
+function setQuizGroup(group) {
+    currentQuizGroup = group;
+    ['all', '1', '2', '3'].forEach(g => {
+        const btn = document.getElementById('btn-group-' + g);
+        if (btn) btn.className = (g === group)
+            ? "px-3 py-1 rounded-lg bg-blue-600 text-white font-medium"
+            : "px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200";
+    });
+    resetQuiz();
+}
+
+function resetQuiz() {
+    quizStreak = 0;
+    const el = document.getElementById('quiz-streak');
+    if (el) el.innerText = "れんぞく: 0";
+    nextQuizQuestion();
+}
+
+function nextQuizQuestion() {
+    const list = getFilteredVerbs(currentQuizGroup);
+    if (!list.length) return;
+    currentQuizVerb = list[Math.floor(Math.random() * list.length)];
+
+    document.getElementById('quiz-verb-kanji').innerHTML = currentQuizVerb.k;
+    document.getElementById('quiz-group-tag').innerText = currentQuizVerb.g + "グループ";
+    renderQuizCardMeaning();
+
+    const feedback = document.getElementById('quiz-feedback');
+    if (feedback) feedback.classList.add('hidden');
+
+    const options = buildQuizOptions(currentQuizVerb);
+    const container = document.getElementById('quiz-options');
+    container.innerHTML = '';
+    options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = "w-full py-3.5 px-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-base font-bold text-slate-800 transition active:scale-95 shadow-sm";
+        btn.innerText = opt.text;
+        btn.onclick = () => checkQuizAnswer(opt, btn, options);
+        container.appendChild(btn);
+    });
+}
+
+function renderQuizCardMeaning() {
+    if (!currentQuizVerb) return;
+    document.getElementById('quiz-verb-meaning').innerText = meaningOf(currentQuizVerb);
+}
+
+function buildQuizOptions(verb) {
+    const correct = teForm(verb.m, verb.g);
+    const options = [{ text: correct, isCorrect: true }];
+    for (const w of wrongTeForms(verb.m, verb.g)) {
+        if (options.length >= 4) break;
+        if (!options.some(o => o.text === w)) options.push({ text: w, isCorrect: false, hint: hintFor(verb, w) });
+    }
+    // 足りない場合の予備
+    const stem = verb.m.slice(0, -2);
+    for (const suf of ["て", "って", "んで", "いて", "いで", "して"]) {
+        if (options.length >= 4) break;
+        const cand = stem + suf;
+        if (cand !== correct && !options.some(o => o.text === cand)) {
+            options.push({ text: cand, isCorrect: false, hint: hintFor(verb, cand) });
+        }
+    }
+    return options.sort(() => Math.random() - 0.5);
+}
+
+function hintFor(verb, wrong) {
+    return "「" + verb.m + "」は " + teRule(verb.m, verb.g) + " のルールです。";
+}
+
+function checkQuizAnswer(selectedOpt, selectedBtn, allOpts) {
+    const container = document.getElementById('quiz-options');
+    const buttons = container.querySelectorAll('button');
+    const feedback = document.getElementById('quiz-feedback');
+
+    buttons.forEach((btn, i) => {
+        btn.onclick = null;
+        if (allOpts[i].isCorrect) {
+            btn.className = "w-full py-3.5 px-4 bg-emerald-500 text-white border border-emerald-600 rounded-xl text-base font-bold shadow-md";
+        } else if (btn === selectedBtn) {
+            btn.className = "w-full py-3.5 px-4 bg-red-100 text-red-600 border border-red-200 rounded-xl text-base font-bold opacity-80";
+        } else {
+            btn.className = "w-full py-3.5 px-4 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl text-base font-medium opacity-50";
+        }
+    });
+
+    feedback.classList.remove('hidden');
+    const correct = teForm(currentQuizVerb.m, currentQuizVerb.g);
+
+    if (selectedOpt.isCorrect) {
+        quizStreak++;
+        document.getElementById('quiz-streak').innerText = "れんぞく: " + quizStreak;
+        feedback.className = "w-full mt-4 p-3 rounded-xl text-left text-xs sm:text-sm bg-emerald-50 border border-emerald-200 text-emerald-800 font-medium";
+        feedback.innerHTML = "⭕️ <b>せいかい！</b>（" + teRule(currentQuizVerb.m, currentQuizVerb.g) + "）";
+    } else {
+        quizStreak = 0;
+        document.getElementById('quiz-streak').innerText = "れんぞく: 0";
+        feedback.className = "w-full mt-4 p-3 rounded-xl text-left text-xs sm:text-sm bg-red-50 border border-red-200 text-red-800 font-medium";
+        feedback.innerHTML = "❌ <b>ざんねん！</b> " + (selectedOpt.hint || "") + "<br>正解: <b>" + correct + "</b>";
+    }
+}
+
+/* ============================================================
+   5. たんごちょう
+   ============================================================ */
+function setFlashcardGroup(group) {
+    currentFlashcardGroup = group;
+    ['all', '1', '2', '3'].forEach(g => {
+        const btn = document.getElementById('fc-group-' + g);
+        if (btn) btn.className = (g === group)
+            ? "px-3 py-1 rounded-lg bg-blue-600 text-white font-medium"
+            : "px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200";
+    });
+    resetFlashcards();
+}
+
+function resetFlashcards() {
+    currentFlashcardList = getFilteredVerbs(currentFlashcardGroup);
+    flashcardIndex = 0;
+    renderFlashcard();
+}
+
+function renderFlashcard() {
+    if (!currentFlashcardList.length) return;
+    const v = currentFlashcardList[flashcardIndex];
+    const inner = document.getElementById('flashcard-inner');
+    if (inner) inner.classList.remove('rotate-y-180');
+
+    document.getElementById('fc-counter').innerText = (flashcardIndex + 1) + " / " + currentFlashcardList.length;
+    document.getElementById('fc-group-badge').innerText = v.g + "グループ";
+    document.getElementById('fc-back-group-badge').innerText = v.g + "グループ";
+    document.getElementById('fc-front-kanji').innerHTML = v.k;
+    document.getElementById('fc-back-te').innerText = teForm(v.m, v.g);
+    document.getElementById('fc-back-rule').innerText = teRule(v.m, v.g);
+    renderFlashcardMeaning();
+}
+
+function renderFlashcardMeaning() {
+    if (!currentFlashcardList.length) return;
+    document.getElementById('fc-front-meaning').innerText = meaningOf(currentFlashcardList[flashcardIndex]);
+}
+
+function flipFlashcard() {
+    const inner = document.getElementById('flashcard-inner');
+    if (inner) inner.classList.toggle('rotate-y-180');
+}
+function prevFlashcard() {
+    if (!currentFlashcardList.length) return;
+    flashcardIndex = (flashcardIndex - 1 + currentFlashcardList.length) % currentFlashcardList.length;
+    renderFlashcard();
+}
+function nextFlashcard() {
+    if (!currentFlashcardList.length) return;
+    flashcardIndex = (flashcardIndex + 1) % currentFlashcardList.length;
+    renderFlashcard();
+}
+
+/* ============================================================
+   6. リスト
+   ============================================================ */
+function renderVerbList() {
+    const query = (document.getElementById('list-search-input')?.value || '').toLowerCase().trim();
+    const groupFilter = document.getElementById('list-group-filter')?.value || 'all';
+    const container = document.getElementById('verb-list-container');
+    const countEl = document.getElementById('list-count');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const filtered = VERBS.filter(v => {
+        if (groupFilter !== 'all' && v.g !== parseInt(groupFilter)) return false;
+        if (!query) return true;
+        const haystack = [v.m, v.ja, plainText(v.k), teForm(v.m, v.g), v.en, v[currentLang] || '']
+            .join(" ").toLowerCase();
+        return haystack.includes(query);
+    });
+
+    if (countEl) countEl.innerText = filtered.length + " / " + VERBS.length + " ご";
+
+    if (!filtered.length) {
+        container.innerHTML = '<div class="text-center py-8 text-xs text-slate-400">みつかりませんでした</div>';
+        return;
+    }
+
+    filtered.forEach(v => {
+        const item = document.createElement('div');
+        item.className = "p-3.5 bg-white border border-slate-200/80 rounded-xl shadow-sm flex items-center justify-between";
+        item.innerHTML =
+            '<div class="flex items-center space-x-3">' +
+            '<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-semibold rounded-md">' + v.g + 'グループ</span>' +
+            '<div><div class="text-base font-bold text-slate-800">' + v.k + '</div>' +
+            '<div class="text-xs text-slate-400 font-medium">' + meaningOf(v) + '</div></div></div>' +
+            '<div class="text-right"><div class="text-base font-extrabold text-blue-600">' + teForm(v.m, v.g) + '</div>' +
+            '<div class="text-[10px] text-slate-400">' + teRule(v.m, v.g) + '</div></div>';
+        container.appendChild(item);
+    });
+}
+
+/* ============================================================
+   7. アプリ内蔵チェック（APIキーなしで動く）
+   正規表現ではなく、動詞辞書から作った「誤ったて形」との照合で判定する。
+   ============================================================ */
+function evaluateSentenceLocally(sentence) {
+    const s = (sentence || "").trim();
+    if (!s) return "ぶんを にゅうりょく してください。";
+
+    const found = [];
+    for (const [wrong, verb] of WRONG_TE_INDEX) {
+        if (s.includes(wrong)) found.push({ wrong, verb });
+    }
+    // 長い一致を優先し、重複を除く
+    found.sort((a, b) => b.wrong.length - a.wrong.length);
+    const shown = [];
+    for (const f of found) {
+        if (shown.some(x => x.wrong.includes(f.wrong))) continue;
+        shown.push(f);
+        if (shown.length >= 3) break;
+    }
+
+    if (shown.length) {
+        let out = "💡 もしかして、ここが ちがうかも しれません：\n";
+        for (const f of shown) {
+            out += "\n・「" + f.wrong + "」→「" + teForm(f.verb.m, f.verb.g) + "」\n"
+                + "　" + f.verb.m + "（" + f.verb.g + "グループ）は " + teRule(f.verb.m, f.verb.g) + "\n";
+        }
+        return out;
+    }
+
+    const used = VERBS.filter(v => s.includes(teForm(v.m, v.g)));
+    if (used.length) {
+        const names = used.slice(0, 3).map(v => teForm(v.m, v.g)).join("・");
+        return "⭕️ てけいが つかえています！\n（" + names + "）\n\nもっと くわしい てんさくが ほしいときは、APIキーを とうろく してください。";
+    }
+    return "💡 ぶんの中に てけい（〜て／〜で）が みつかりませんでした。\nれい：あさ おきて、ごはんを たべます。";
+}
+
+function evaluateVerbLocally(input) {
+    const q = (input || "").trim();
+    if (!q) return "どうしを にゅうりょく してください。";
+
+    const hits = VERBS.filter(v => v.m === q || v.ja === q || plainText(v.k) === q);
+    if (hits.length) {
+        return hits.map(v =>
+            "💡 「" + plainText(v.k) + "」\n"
+            + "・グループ：" + v.g + "グループ\n"
+            + "・てけい：" + teForm(v.m, v.g) + "\n"
+            + "・ルール：" + teRule(v.m, v.g) + "\n"
+            + "・いみ：" + (v.en || "")
+        ).join("\n\n");
+    }
+
+    // リストにない動詞でも、ます形ならルールから計算する
+    if (/ます$/.test(q)) {
+        for (const g of [1, 2, 3]) {
+            if (g === 3 && !/します$/.test(q) && q !== "きます") continue;
+            if (g === 1) {
+                const last = q.slice(0, -2).slice(-1);
+                if (!(I_CHI_RI + MI_BI_NI + "きぎし").includes(last)) continue;
+            }
+            const te = teForm(q, g);
+            if (!te) continue;
+            const note = (g === 1)
+                ? "\n※「" + q + "」が2グループの動詞なら、てけいは「" + teForm(q, 2) + "」になります。"
+                : "";
+            return "💡 「" + q + "」\n・グループ：" + g + "グループとして計算\n・てけい：" + te
+                + "\n・ルール：" + teRule(q, g) + note;
+        }
+    }
+    return "「〜ます」の かたちで にゅうりょく してください。（れい：あそびます、たべます）";
+}
+
+function showAIResponse(text) {
+    document.getElementById('ai-response-text').innerText = text;
+    document.getElementById('ai-response-card').classList.remove('hidden');
+}
+
+async function checkSentenceWithAI() {
+    const sentence = (document.getElementById('ai-sentence-input')?.value || "").trim();
+    if (!sentence) { showAIResponse("ぶんを にゅうりょく してください。"); return; }
+
+    if (!getSavedApiKey()) { showAIResponse(evaluateSentenceLocally(sentence)); return; }
+
+    showAIResponse("⏳ AIせんせいが かんがえています...");
+    const systemPrompt = "あなたは日本語学校のやさしい先生です。思考プロセスや英語のログは出力せず、次の形式で3行程度で答えてください。\n\n⭕️ 正しい文：(修正後の文)\n💡 ポイント：(て形の要点をやさしい日本語で短く)";
+    const result = await callGeminiAPI("学習者の作文：「" + sentence + "」", systemPrompt);
+    showAIResponse(result || evaluateSentenceLocally(sentence));
+}
+
+async function askAIVerbTeForm() {
+    const verbStr = (document.getElementById('ai-verb-input')?.value || "").trim();
+    if (!verbStr) { showAIResponse("しつもんする どうしを にゅうりょく してください。"); return; }
+
+    if (!getSavedApiKey()) { showAIResponse(evaluateVerbLocally(verbStr)); return; }
+
+    showAIResponse("⏳ AIせんせいが しらべています...");
+    const systemPrompt = "あなたは日本語学校のやさしい先生です。思考プロセスや英語のログは出力せず、入力された動詞のグループ・て形・短い解説を3行程度で答えてください。";
+    const result = await callGeminiAPI("動詞：「" + verbStr + "」のて形について教えてください。", systemPrompt);
+    showAIResponse(result || evaluateVerbLocally(verbStr));
+}
+
+/* ============================================================
+   8. Gemini API（2026-08 時点の仕様）
+   ・旧モデル(1.5 / 2.0系)は全てシャットダウン済み
+   ・候補が全滅したら ListModels で使えるモデルを自動探索する
+   ============================================================ */
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+const CANDIDATE_MODELS = ["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"];
+const USE_HEADER_AUTH = true;   // CORSで弾かれる環境なら false（?key= 方式になる）
 
 function buildGeminiRequest(model, apiKey, payload) {
     const headers = { "Content-Type": "application/json" };
-    let url = `${GEMINI_API_BASE}/models/${model}:generateContent`;
+    let url = GEMINI_API_BASE + "/models/" + model + ":generateContent";
     if (USE_HEADER_AUTH) headers["x-goog-api-key"] = apiKey;
-    else url += `?key=${encodeURIComponent(apiKey)}`;
+    else url += "?key=" + encodeURIComponent(apiKey);
     return { url, init: { method: "POST", headers, body: JSON.stringify(payload) } };
 }
 
-/** 実際に使えるモデルを API に問い合わせて 1 つ選ぶ。見つからなければ null */
 async function discoverUsableModel(apiKey) {
-    let url = `${GEMINI_API_BASE}/models`;
+    let url = GEMINI_API_BASE + "/models";
     const headers = {};
     if (USE_HEADER_AUTH) headers["x-goog-api-key"] = apiKey;
-    else url += `?key=${encodeURIComponent(apiKey)}`;
+    else url += "?key=" + encodeURIComponent(apiKey);
 
     let data;
     try {
@@ -54,7 +901,6 @@ async function discoverUsableModel(apiKey) {
 
     const models = Array.isArray(data && data.models) ? data.models : [];
     const NG = /image|tts|audio|embedding|veo|lyria|live|robotics|imagen|gemma|deep-research|antigravity|omni/i;
-
     const usable = models
         .map(m => String(m.name || "").replace(/^models\//, ""))
         .filter((name, i) => {
@@ -62,16 +908,13 @@ async function discoverUsableModel(apiKey) {
             const okMethod = !Array.isArray(methods) || methods.includes("generateContent");
             return name && okMethod && !NG.test(name) && /gemini/i.test(name);
         });
-
     if (!usable.length) return null;
 
     const score = n => {
         let s = 0;
-        if (/flash-lite/.test(n)) s += 200;
-        else if (/flash/.test(n)) s += 100;
+        if (/flash-lite/.test(n)) s += 200; else if (/flash/.test(n)) s += 100;
         if (/preview|exp/.test(n)) s -= 50;
-        const v = parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || "0");
-        return s + v;
+        return s + parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || "0");
     };
     usable.sort((a, b) => score(b) - score(a));
     return usable[0];
@@ -80,33 +923,24 @@ async function discoverUsableModel(apiKey) {
 async function tryGeminiModel(model, apiKey, payload) {
     const { url, init } = buildGeminiRequest(model, apiKey, payload);
     let res, data;
-    try {
-        res = await fetch(url, init);
-    } catch (e) {
-        return { ok: false, message: `通信に失敗しました（${model}）。ネットワークまたは CORS をご確認ください。` };
-    }
+    try { res = await fetch(url, init); }
+    catch (e) { return { ok: false, message: "通信に失敗しました（" + model + "）。ネットワークまたはCORSをご確認ください。" }; }
     try { data = await res.json(); } catch (e) { data = {}; }
 
     if (!res.ok) {
-        const msg = (data.error && data.error.message) || `HTTP ${res.status}`;
-        if (res.status === 404) return { ok: false, notFound: true, message: `モデル ${model} は利用できません（${msg}）` };
+        const msg = (data.error && data.error.message) || ("HTTP " + res.status);
+        if (res.status === 404) return { ok: false, notFound: true, message: "モデル " + model + " は利用できません" };
         if (res.status === 403) return {
             ok: false, fatal: true,
-            message: `❌ APIキーが拒否されました（403）。\nGoogle AI Studio / Cloud Console でキーの制限設定を開き、公開先のドメインを許可リストに追加してください。\n詳細: ${msg}`
+            message: "❌ APIキーが拒否されました（403）。\nGoogle AI Studio でキーの制限設定を開き、公開先のドメインを許可リストに追加してください。\n詳細: " + msg
         };
         if (res.status === 429) {
-            // 廃止済み・未提供のモデルは 404 ではなく「limit: 0」の 429 を返すことがある。
-            // これは混雑ではなく「このキーではそのモデルを使えない」の意味なので、次の候補へ進む。
-            if (/limit:\s*0\b/.test(msg)) {
-                return { ok: false, notFound: true, quotaZero: true, message: `モデル ${model} はこのキーでは利用できません（quota limit 0）` };
-            }
+            // 廃止済みモデルは 404 ではなく「limit: 0」の429を返すことがある＝混雑ではない
+            if (/limit:\s*0\b/.test(msg)) return { ok: false, notFound: true, quotaZero: true, message: "モデル " + model + " はこのキーでは利用できません" };
             const retry = (msg.match(/retry in ([\d.]+)s/i) || [])[1];
-            return {
-                ok: false, fatal: true,
-                message: `❌ 利用上限に達しました（429）。${retry ? `約${Math.ceil(Number(retry))}秒後に` : "しばらく待ってから"}お試しください。`
-            };
+            return { ok: false, fatal: true, message: "❌ 利用上限に達しました（429）。" + (retry ? "約" + Math.ceil(Number(retry)) + "秒後に" : "しばらく待ってから") + "お試しください。" };
         }
-        return { ok: false, message: `${msg}（${model}）` };
+        return { ok: false, message: msg + "（" + model + "）" };
     }
 
     const cand = (data.candidates && data.candidates[0]) || null;
@@ -119,30 +953,24 @@ async function tryGeminiModel(model, apiKey, payload) {
     if (finish === "SAFETY" || (data.promptFeedback && data.promptFeedback.blockReason)) {
         return { ok: false, fatal: true, message: "❌ 安全性フィルタにより回答が返りませんでした。文を変えてお試しください。" };
     }
-    return { ok: false, message: `空の応答が返りました（${model} / finishReason: ${finish || "不明"}）` };
+    return { ok: false, message: "空の応答が返りました（" + model + "）" };
 }
 
-/** 戻り値は常に文字列。キー未設定のときだけ null（＝ローカルモードに落ちる） */
 async function callGeminiAPI(userPrompt, systemPrompt = "") {
     const apiKey = getSavedApiKey();
     if (!apiKey) return null;
 
     const payload = {
         contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-        // 思考モデルでは思考トークンも上限を消費するため、300 では本文が出ない
+        // 思考モデルは思考トークンも上限を消費するため、少なすぎると本文が空になる
         generationConfig: { maxOutputTokens: 1024 }
     };
     if (systemPrompt) payload.systemInstruction = { parts: [{ text: systemPrompt }] };
 
     const cached = lsGet(MODEL_CACHE_KEY);
-    const tryList = [];
-    if (cached) tryList.push(cached);
-    for (const m of CANDIDATE_MODELS) if (m !== cached) tryList.push(m);
+    const tryList = cached ? [cached, ...CANDIDATE_MODELS.filter(m => m !== cached)] : [...CANDIDATE_MODELS];
 
-    let lastError = "";
-    let sawNotFound = false;
-    let quotaZeroCount = 0;
-    let attempts = 0;
+    let lastError = "", sawNotFound = false, quotaZeroCount = 0, attempts = 0;
 
     for (const model of tryList) {
         const r = await tryGeminiModel(model, apiKey, payload);
@@ -166,32 +994,27 @@ async function callGeminiAPI(userPrompt, systemPrompt = "") {
         }
     }
 
-    // 全てのモデルで「limit: 0」＝ モデルの問題ではなくキー／プロジェクト側の問題
     if (quotaZeroCount > 0 && quotaZeroCount === attempts) {
-        return "❌ このAPIキーには無料枠の割り当てがありません（quota limit 0）。\n" +
-            "・Google AI Studio で新しいキーを作り直す\n" +
-            "・キーが紐づくGoogle Cloudプロジェクトの請求設定を確認する\n" +
-            "のどちらかが必要です。モデル名の問題ではありません。";
+        return "❌ このAPIキーには無料枠の割り当てがありません（quota limit 0）。\n"
+            + "・Google AI Studio で新しいキーを作り直す\n"
+            + "・キーが紐づくGoogleアカウント／プロジェクトの請求設定を確認する\n"
+            + "のどちらかが必要です。モデル名の問題ではありません。";
     }
-
-    return `❌ AIに接続できませんでした。\n${lastError || "ネットワークまたはAPIキーをご確認ください。"}`;
+    return "❌ AIに接続できませんでした。\n" + (lastError || "ネットワークまたはAPIキーをご確認ください。");
 }
 
-/* ---------------------------------------------------------------------------
-   接続テスト（任意）
-   APIキー設定モーダルの「保存する」ボタンの直後に、次の 1 行を足すと使えます:
-
-   <button onclick="runGeminiSelfTest()" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-sm rounded-xl transition">接続テスト</button>
---------------------------------------------------------------------------- */
 async function runGeminiSelfTest() {
-    const key = getSavedApiKey();
-    if (!key) { alert("⚪️ APIキーが未設定です。"); return; }
+    if (!getSavedApiKey()) { showTestResult("⚪️ APIキーが未設定です。"); return; }
+    showTestResult("⏳ 接続を確認しています...");
     const t0 = Date.now();
     const r = await callGeminiAPI("「テスト」とだけ返してください。", "");
     const ms = Date.now() - t0;
-    if (r && !r.startsWith("❌")) {
-        alert(`🟢 接続OK（${ms}ms）\n使用モデル: ${lsGet(MODEL_CACHE_KEY) || "不明"}\n応答: ${r.slice(0, 40)}`);
+    if (r && r.indexOf("❌") !== 0) {
+        showTestResult("🟢 接続OK（" + ms + "ms）\n使用モデル: " + (lsGet(MODEL_CACHE_KEY) || "不明") + "\n応答: " + r.slice(0, 40));
     } else {
-        alert(r || "❌ 不明なエラー");
+        showTestResult(r || "❌ 不明なエラー");
     }
 }
+</script>
+</body>
+</html>
