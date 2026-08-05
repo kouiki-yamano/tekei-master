@@ -401,7 +401,7 @@
             { kanji: "<ruby>相<rt>そう</rt></ruby><ruby>談<rt>だん</rt></ruby>します", masu: "そうだんします", group: 3, te: "相談して", te_kana: "そうだんして", rule: "します ➔ して", en: "to consult", zh: "商量", vi: "thảo luận", id: "berkonsultasi", km: "ពិគ្រោះ", uz: "maslahatlashmoq" },
             { kanji: "<ruby>紹<rt>しょう</rt></ruby><ruby>介<rt>かい</rt></ruby>します", masu: "しょうかいします", group: 3, te: "紹介して", te_kana: "しょうかいして", rule: "します ➔ して", en: "to introduce", zh: "介绍", vi: "giới thiệu", id: "memperkenalkan", km: "ណែនាំ", uz: "tanishtirmoq" },
             { kanji: "<ruby>残<rt>ざん</rt></ruby><ruby>業<rt>ぎょう</rt></ruby>します", masu: "ざんぎょうします", group: 3, te: "残業して", te_kana: "ざんぎょうして", rule: "します ➔ して", en: "to work overtime", zh: "加班", vi: "làm thêm", id: "lembur", km: "ថែមម៉ោង", uz: "ortiqcha ishlamoq" },
-            { kanji: "<ruby>出<rt>しゅっ</rt></ruby><ruby>張<rt>ちょう</rt></rule>します", masu: "しゅっちょうします", group: 3, te: "出張して", te_kana: "しゅっちょうして", rule: "します ➔ して", en: "to go business trip", zh: "出差", vi: "đi công tác", id: "dinas", km: "បេសកកម្ម", uz: "xizmat safarida bo'lmoq" },
+            { kanji: "<ruby>出<rt>しゅっ</rt></ruby><ruby>張<rt>ちょう</rt></ruby>します", masu: "しゅっちょうします", group: 3, te: "出張して", te_kana: "しゅっちょうして", rule: "します ➔ して", en: "to go business trip", zh: "出差", vi: "đi công tác", id: "dinas", km: "បេសកកម្ម", uz: "xizmat safarida bo'lmoq" },
             { kanji: "<ruby>留<rt>りゅう</rt></ruby><ruby>学<rt>がく</rt></ruby>します", masu: "りゅうがくします", group: 3, te: "留学して", te_kana: "りゅうがくして", rule: "します ➔ して", en: "to study abroad", zh: "留学", vi: "du học", id: "studi di luar negeri", km: "សិក្សានៅបរទេស", uz: "chet elda o'qimoq" },
             { kanji: "<ruby>結<rt>けっ</rt></ruby><ruby>婚<rt>こん</rt></ruby>します", masu: "けっこんします", group: 3, te: "結婚して", te_kana: "けっこんして", rule: "します ➔ して", en: "to marry", zh: "结婚", vi: "kết hôn", id: "menikah", km: "រៀបការ", uz: "turmush qurmoq" },
             { kanji: "<ruby>洗<rt>せん</rt></ruby><ruby>濯<rt>たく</rt></ruby>します", masu: "せんたくします", group: 3, te: "洗濯して", te_kana: "せんたくして", rule: "します ➔ して", en: "to wash laundry", zh: "洗衣服", vi: "giặt đồ", id: "mencuci baju", km: "បោកខោអាវ", uz: "kiyim yuvmoq" },
@@ -703,7 +703,7 @@
             renderFlashcard();
         }
 
-        // Gemini Dynamic API Call Logic
+        // Gemini API Call Logic
         async function callGeminiAPI(userPrompt, systemPrompt = "") {
             const apiKey = getSavedApiKey();
             if (!apiKey) return null;
@@ -783,18 +783,19 @@
 
             showAIResponse("⏳ AIせんせいが かんがえています...");
 
-            const systemPrompt = `あなたは日本語学校の非常に優秀で親切な「AIせんせい」です。初級日本語学習者の「て形（〜て／〜で）」を使った作文を添削してください。
+            const systemPrompt = `あなたは日本語学校の優しく親切な「AIせんせい」です。初級の日本語学習者の作文（て形の使い方）を添削してください。
 
-【最重要：学習者の「言いたい意図（文脈）」を汲み取ること】
-学習者がどのような文脈や状況を伝えたかったのかを深く想像してください。
-文法の間違いや助詞の使い方から、複数の意味（例：能動の「〜して」なのか、受身の「〜されて」なのか等）が考えられる場合は、決めつけずに「確認の質問（ワンクッション）」を入れてから、状況に応じた正しい文を提示してください。
+【出力ルール（最重要）】
+・思考プロセスや英語のメタ情報（Role: や Task: など）は絶対に出力しないでください。
+・最初から最後まで、学習者に直接語りかける【日本語の添削アドバイステキストのみ】を出力してください。
+・応答は初級レベル（N5〜N4）の易しく丁寧な日本語（〜です、〜ます）で行ってください。
 
-【基本指示】
-1. 応答は初級（N5〜N4レベル）の易しく丁寧な日本語（〜です、〜ます、〜てください等）で行うこと。
-2. 学習者の設定母語（${currentLangName}）で短いサポート解説を加えること。
-3. 間違いの理由（「〜食べまして」は「〜食べて」になるなど）を分かりやすく説明すること。`;
+【添削の進め方】
+1. 明らかな文法間違い（例：「書きて」➔「書いて」）を正しく直します。
+2. もし文脈によって複数の意味（「〜してから」なのか「〜するために」なのか）が考えられる場合は、「何と言いたかったですか？」と優しく確認し、それぞれの文パターンを提示してください。
+${currentLangName !== '日本語' ? `3. 必要に応じて、学習者の言語（${currentLangName}）で簡単なサポート訳を添えてください。` : ''}`;
 
-            const userPrompt = `以下の作文のて形と文脈を添削してください。\n\n学習者の作文：「${sentence}」\n学習者の母語：${currentLangName}`;
+            const userPrompt = `学習者の作文：「${sentence}」\n学習者の表示言語：${currentLangName}\n\nこの作文を添削して日本語で学習者に語りかけてください。`;
 
             const apiKey = getSavedApiKey();
             if (apiKey) {
@@ -821,8 +822,11 @@
 
             showAIResponse("⏳ AIせんせいが しらべています...");
 
-            const systemPrompt = `あなたは日本語学校の優しく丁寧な「AIせんせい」です。どんな動詞でも「ます形」「辞書形」「て形」「グループ（Ⅰ/Ⅱ/Ⅲ）」「活用ルール」「${currentLangName}での意味」を正確に分かりやすく教えてください。`;
-            const userPrompt = `動詞：「${verbStr}」のて形について教えてください。母語：${currentLangName}`;
+            const systemPrompt = `あなたは日本語学校の優しく丁寧な「AIせんせい」です。
+思考プロセスや英語のログは出力せず、直接学習者に語りかける日本語の回答だけを出力してください。
+入力された動詞の「ます形」「辞書形」「て形」「グループ（Ⅰ/Ⅱ/Ⅲ）」「活用ルール」「${currentLangName}での意味」を分かりやすく教えてください。`;
+
+            const userPrompt = `動詞：「${verbStr}」のて形について教えてください。`;
 
             const apiKey = getSavedApiKey();
             if (apiKey) {
