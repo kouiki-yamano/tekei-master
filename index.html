@@ -94,7 +94,18 @@ async function tryGeminiModel(model, apiKey, payload) {
             ok: false, fatal: true,
             message: `❌ APIキーが拒否されました（403）。\nGoogle AI Studio / Cloud Console でキーの制限設定を開き、公開先のドメインを許可リストに追加してください。\n詳細: ${msg}`
         };
-        if (res.status === 429) return { ok: false, fatal: true, message: "❌ 利用上限に達しました（429）。しばらく待ってからお試しください。" };
+        if (res.status === 429) {
+            // 廃止済み・未提供のモデルは 404 ではなく「limit: 0」の 429 を返すことがある。
+            // これは混雑ではなく「このキーではそのモデルを使えない」の意味なので、次の候補へ進む。
+            if (/limit:\s*0\b/.test(msg)) {
+                return { ok: false, notFound: true, quotaZero: true, message: `モデル ${model} はこのキーでは利用できません（quota limit 0）` };
+            }
+            const retry = (msg.match(/retry in ([\d.]+)s/i) || [])[1];
+            return {
+                ok: false, fatal: true,
+                message: `❌ 利用上限に達しました（429）。${retry ? `約${Math.ceil(Number(retry))}秒後に` : "しばらく待ってから"}お試しください。`
+            };
+        }
         return { ok: false, message: `${msg}（${model}）` };
     }
 
@@ -130,11 +141,15 @@ async function callGeminiAPI(userPrompt, systemPrompt = "") {
 
     let lastError = "";
     let sawNotFound = false;
+    let quotaZeroCount = 0;
+    let attempts = 0;
 
     for (const model of tryList) {
         const r = await tryGeminiModel(model, apiKey, payload);
+        attempts++;
         if (r.ok) { lsSet(MODEL_CACHE_KEY, model); return r.text; }
         if (r.fatal) return r.message;
+        if (r.quotaZero) quotaZeroCount++;
         if (r.notFound) { sawNotFound = true; if (cached === model) lsDel(MODEL_CACHE_KEY); }
         lastError = r.message || lastError;
     }
@@ -143,9 +158,20 @@ async function callGeminiAPI(userPrompt, systemPrompt = "") {
         const found = await discoverUsableModel(apiKey);
         if (found) {
             const r = await tryGeminiModel(found, apiKey, payload);
+            attempts++;
             if (r.ok) { lsSet(MODEL_CACHE_KEY, found); return r.text; }
+            if (r.fatal) return r.message;
+            if (r.quotaZero) quotaZeroCount++;
             lastError = r.message || lastError;
         }
+    }
+
+    // 全てのモデルで「limit: 0」＝ モデルの問題ではなくキー／プロジェクト側の問題
+    if (quotaZeroCount > 0 && quotaZeroCount === attempts) {
+        return "❌ このAPIキーには無料枠の割り当てがありません（quota limit 0）。\n" +
+            "・Google AI Studio で新しいキーを作り直す\n" +
+            "・キーが紐づくGoogle Cloudプロジェクトの請求設定を確認する\n" +
+            "のどちらかが必要です。モデル名の問題ではありません。";
     }
 
     return `❌ AIに接続できませんでした。\n${lastError || "ネットワークまたはAPIキーをご確認ください。"}`;
