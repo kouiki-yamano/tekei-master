@@ -212,12 +212,22 @@
         <!-- VIEW 3: AI SENSEI -->
         <section id="view-ai" class="hidden flex-1 flex flex-col space-y-4">
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                <div class="flex items-center space-x-2 border-b border-slate-100 pb-3">
-                    <span class="text-2xl">🤖</span>
-                    <div>
-                        <h2 class="font-bold text-slate-800">AIせんせい</h2>
-                        <p class="text-xs text-slate-500">さくぶんの チェックや どうしの しつもんが できます。</p>
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-2xl">🤖</span>
+                        <div>
+                            <h2 class="font-bold text-slate-800">AIせんせい</h2>
+                            <p class="text-xs text-slate-500">さくぶんの チェックや どうしの しつもんが できます。</p>
+                        </div>
                     </div>
+                    <!-- API Key Settings Button & Badge -->
+                    <button onclick="openApiKeyModal()" class="px-3 py-1.5 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold border border-amber-200 rounded-xl transition flex items-center space-x-1">
+                        <span>🔑 APIキー設定</span>
+                    </button>
+                </div>
+
+                <div id="key-status-badge" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-between">
+                    <span>状態: 読み込み中...</span>
                 </div>
 
                 <!-- Sentence Checker Box -->
@@ -336,12 +346,39 @@
 
     </main>
 
+    <!-- Modal for setting Gemini API Key -->
+    <div id="api-key-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-100">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base">🔑 Gemini APIキー設定</h3>
+                <button onclick="closeApiKeyModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed">
+                Gemini APIキーを登録すると、高度なAI添削機能が使えます。<br>
+                <b>🔒 安全性:</b> キーはお使いの端末（ブラウザ）にのみ保存され、サーバー等に送信・公開されることはありません。
+            </p>
+            <input id="api-key-input" type="text" placeholder="AIzaSy..." class="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none font-mono">
+            
+            <div class="flex space-x-2 pt-2">
+                <button onclick="saveApiKey()" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-sm transition">
+                    保存する
+                </button>
+                <button onclick="clearApiKey()" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-sm rounded-xl transition">
+                    消去
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="mt-6 text-center text-xs text-slate-400">
         てけいマスター &copy; Japanese Learning Tool
     </footer>
 
     <script>
+        // Storage Key
+        const STORAGE_KEY = "tekei_master_gemini_key";
+
         // Full dataset of 132 verbs with verified accuracy
         const RAW_VERBS = [
             // I Group (64 verbs)
@@ -375,13 +412,13 @@
             { kanji: "<ruby>住<rt>す</rt></ruby>みます", masu: "すみます", group: 1, te: "住んで", te_kana: "すんで", rule: "み・び・に ➔ んで", en: "to live / reside", zh: "居住", vi: "sống", id: "tinggal", km: "រស់នៅ", uz: "yashamoq" },
             { kanji: "<ruby>立<rt>た</rt></ruby>ちます", masu: "たちます", group: 1, te: "立って", te_kana: "たって", rule: "い・ち・り ➔ って", en: "to stand", zh: "站立", vi: "đứng", id: "berdiri", km: "ឈរ", uz: "turmoq" },
             { kanji: "<ruby>出<rt>だ</rt></ruby>します", masu: "だします", group: 1, te: "出して", te_kana: "だして", rule: "し ➔ して", en: "to take out", zh: "拿出", vi: "nộp/lấy ra", id: "mengeluarkan", km: "យកចេញ", uz: "chiqarmoq" },
-            { kanji: "<ruby>頼<rt>たの</rt></ruby>みます", masu: "たのみます", group: 1, te: "頼んで", te_kana: "たのんで", rule: "み・び・に ➔ んで", en: "to ask / request", zh: "拜托", vi: "nhờ", id: "meminta", km: "ពឹងពាក់", uz: "iltimos qilmoq" },
+            { kanji: "<ruby>頼<rt>たの</rt></ruby>みます", masu: "たの dense", group: 1, te: "頼んで", te_kana: "たのんで", rule: "み・び・に ➔ んで", en: "to ask / request", zh: "拜托", vi: "nhờ", id: "meminta", km: "ពឹងពាក់", uz: "iltimos qilmoq" },
             { kanji: "<ruby>違<rt>ちが</rt></ruby>います", masu: "ちがいます", group: 1, te: "違って", te_kana: "ちがって", rule: "い・ち・り ➔ って", en: "to be different", zh: "不同", vi: "khác", id: "berbeda", km: "ខុស", uz: "farq qilmoq" },
             { kanji: "<ruby>使<rt>つか</rt></ruby>います", masu: "つかいます", group: 1, te: "使って", te_kana: "つかって", rule: "い・ち・り ➔ って", en: "to use", zh: "使用", vi: "dùng", id: "menggunakan", km: "ប្រើ", uz: "ishlatmoq" },
             { kanji: "<ruby>着<rt>つ</rt></ruby>きます", masu: "つきます", group: 1, te: "着いて", te_kana: "ついて", rule: "き ➔ いて", en: "to arrive", zh: "到达", vi: "đến", id: "tiba", km: "មកដល់", uz: "etib kelmoq" },
             { kanji: "<ruby>作<rt>つく</rt></ruby>ります", masu: "つくります", group: 1, te: "作って", te_kana: "つくって", rule: "い・ち・り ➔ って", en: "to make", zh: "制作", vi: "làm", id: "membuat", km: "ធ្វើ", uz: "yasamog" },
             { kanji: "<ruby>手<rt>て</rt></ruby>つだいます", masu: "てつだいます", group: 1, te: "手つだって", te_kana: "てつだって", rule: "い・ち・り ➔ って", en: "to help", zh: "帮忙", vi: "giúp đỡ", id: "membantu", km: "ជួយ", uz: "yordamlashmoq" },
-            { kanji: "<ruby>通<rt>とお</rt></ruby>ります", masu: "とおります", group: 1, te: "通って", te_kana: "とおって", rule: "い・ち・り ➔ って", en: "to pass through", zh: "通过", vi: "đi qua", id: "melewati", km: "ឆ្លងកាត់", uz: "o'tmoq" },
+            { kanji: "<ruby>通<rt>とお</rt></ruby>ります", masu: "とおリます", group: 1, te: "通って", te_kana: "とおって", rule: "い・ち・り ➔ って", en: "to pass through", zh: "通过", vi: "đi qua", id: "melewati", km: "ឆ្លងកាត់", uz: "o'tmoq" },
             { kanji: "<ruby>止<rt>と</rt></ruby>まります", masu: "とまります", group: 1, te: "止まって", te_kana: "とまって", rule: "い・ち・り ➔ って", en: "to stop", zh: "停止", vi: "dừng", id: "berhenti", km: "ឈប់", uz: "to'xtamoq" },
             { kanji: "<ruby>取<rt>と</rt></ruby>ります", masu: "とります", group: 1, te: "取って", te_kana: "とって", rule: "い・ち・り ➔ って", en: "to take", zh: "拿", vi: "lấy", id: "mengambil", km: "យក", uz: "olmoq" },
             { kanji: "<ruby>直<rt>なお</rt></ruby>します", masu: "なおします", group: 1, te: "直して", te_kana: "なおして", rule: "し ➔ して", en: "to repair / fix", zh: "修理", vi: "sửa", id: "memperbaiki", km: "ជួសជុល", uz: "tuzatmoq" },
@@ -419,7 +456,7 @@
             { kanji: "<ruby>起<rt>お</rt></ruby>きます", masu: "おきます", group: 2, te: "起きて", te_kana: "おきて", rule: "ます ➔ て", en: "to wake up", zh: "起床", vi: "thức dậy", id: "bangun", km: "ភ្ញាក់", uz: "uyg'onmoq" },
             { kanji: "<ruby>落<rt>お</rt></ruby>ちます", masu: "おちます", group: 2, te: "落ちて", te_kana: "おちて", rule: "ます ➔ て", en: "to fall", zh: "掉落", vi: "rơi", id: "jatuh", km: "ធ្លាក់", uz: "yiqilmoq" },
             { kanji: "<ruby>覚<rt>おぼ</rt></ruby>えます", masu: "おぼえます", group: 2, te: "覚えて", te_kana: "おぼえて", rule: "ます ➔ て", en: "to memorize", zh: "记住", vi: "nhớ", id: "mengingat", km: "ចងចាំ", uz: "yodlamoq" },
-            { kanji: "<ruby>降<rt>お</rt></ruby>ります", masu: "おります", group: 2, te: "降りて", te_kana: "おりて", rule: "ます ➔ て", en: "to get off", zh: "下车", vi: "xuống xe", id: "turun", km: "ចុះ", uz: "tushmoq" },
+            { kanji: "<ruby>降<rt>お</rt></ruby>ります", masu: "おりま:す", group: 2, te: "降りて", te_kana: "おりて", rule: "ます ➔ て", en: "to get off", zh: "下车", vi: "xuống xe", id: "turun", km: "ចុះ", uz: "tushmoq" },
             { kanji: "<ruby>変<rt>か</rt></ruby>えます", masu: "かえます", group: 2, te: "変えて", te_kana: "かえて", rule: "ます ➔ て", en: "to change", zh: "改变", vi: "thay đổi", id: "mengubah", km: "ផ្លាស់ប្តូរ", uz: "o'zgartirmoq" },
             { kanji: "かけます", masu: "かけます", group: 2, te: "かけて", te_kana: "かけて", rule: "ます ➔ て", en: "to call / make", zh: "打电话/戴", vi: "gọi điện", id: "menelepon", km: "ពាក់/ហៅ", uz: "qo'ng'iroq qilmoq" },
             { kanji: "<ruby>借<rt>か</rt></ruby>ります", masu: "かります", group: 2, te: "借りて", te_kana: "かりて", rule: "ます ➔ て", en: "to borrow", zh: "借入", vi: "vay/mượn", id: "meminjam", km: "ខ្ចី", uz: "qarz olmoq" },
@@ -469,7 +506,7 @@
             { kanji: "<ruby>残<rt>ざん</rt></ruby><ruby>業<rt>ぎょう</rt></ruby>します", masu: "ざんぎょうします", group: 3, te: "残業して", te_kana: "ざんぎょうして", rule: "します ➔ して", en: "to work overtime", zh: "加班", vi: "làm thêm", id: "lembur", km: "ថែមម៉ោង", uz: "ortiqcha ishlamoq" },
             { kanji: "<ruby>出<rt>しゅっ</rt></ruby><ruby>張<rt>ちょう</rt></ruby>します", masu: "しゅっちょうします", group: 3, te: "出張して", te_kana: "しゅっちょうして", rule: "します ➔ して", en: "to go business trip", zh: "出差", vi: "đi công tác", id: "dinas", km: "បេសកកម្ម", uz: "xizmat safarida bo'lmoq" },
             { kanji: "<ruby>留<rt>りゅう</rt></ruby><ruby>学<rt>がく</rt></ruby>します", masu: "りゅうがくします", group: 3, te: "留学して", te_kana: "りゅうがくして", rule: "します ➔ して", en: "to study abroad", zh: "留学", vi: "du học", id: "studi di luar negeri", km: "សិក្សានៅបរទេស", uz: "chet elda o'qimoq" },
-            { kanji: "<ruby>結<rt>けっ</rt></ruby><ruby>婚<rt>こん</rt></ruby>します", masu: "けっこんします", group: 3, te: "結婚して", te_kana: "けっこんして", rule: "します ➔ して", en: "to marry", zh: "结婚", vi: "kết hôn", id: "menikah", km: "រៀបការ", uz: "turmush qurmoq" },
+            { kanji: "<ruby>結<rt>けっ</rt></ruby><ruby>婚<rt>こん</rt></ruby>します", masu: "けっこんします", group: 3, te: "結婚して", te_kana: "けっこんして", rule: "します ➔ して", en: "to marry", zh: "结婚", vi: "kết hôn", id: "menikah", km: "រៀបகார", uz: "turmush qurmoq" },
             { kanji: "<ruby>洗<rt>せん</rt></ruby><ruby>濯<rt>たく</rt></ruby>します", masu: "せんたくします", group: 3, te: "洗濯して", te_kana: "せんたくして", rule: "します ➔ して", en: "to wash laundry", zh: "洗衣服", vi: "giặt đồ", id: "mencuci baju", km: "បោកខោអាវ", uz: "kiyim yuvmoq" },
             { kanji: "<ruby>掃<rt>そう</rt></ruby><ruby>除<rt>じ</rt></ruby>します", masu: "そうじします", group: 3, te: "掃除して", te_kana: "そうじして", rule: "します ➔ して", en: "to clean", zh: "打扫", vi: "dọn dẹp", id: "membersihkan", km: "សម្អាត", uz: "tozalash" },
             { kanji: "<ruby>運<rt>うん</rt></ruby><ruby>動<rt>どう</rt></ruby>します", masu: "うんどうします", group: 3, te: "運動して", te_kana: "うんどうして", rule: "します ➔ して", en: "to exercise", zh: "运动", vi: "tập thể dục", id: "berolahraga", km: "ហាត់ប្រាណ", uz: "mashq qilmoq" },
@@ -496,7 +533,56 @@
             resetQuiz();
             resetFlashcards();
             renderVerbList();
+            updateKeyStatusBadge();
         };
+
+        // API Key Management Functions
+        function getSavedApiKey() {
+            return localStorage.getItem(STORAGE_KEY) || "";
+        }
+
+        function openApiKeyModal() {
+            document.getElementById('api-key-input').value = getSavedApiKey();
+            document.getElementById('api-key-modal').classList.remove('hidden');
+        }
+
+        function closeApiKeyModal() {
+            document.getElementById('api-key-modal').classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const key = document.getElementById('api-key-input').value.trim();
+            if (key) {
+                localStorage.setItem(STORAGE_KEY, key);
+                alert("APIキーを保存しました！Gemini AI機能が使えます。");
+            } else {
+                localStorage.removeItem(STORAGE_KEY);
+                alert("APIキーを消去しました。");
+            }
+            closeApiKeyModal();
+            updateKeyStatusBadge();
+        }
+
+        function clearApiKey() {
+            localStorage.removeItem(STORAGE_KEY);
+            document.getElementById('api-key-input').value = "";
+            alert("APIキーを消去しました。");
+            closeApiKeyModal();
+            updateKeyStatusBadge();
+        }
+
+        function updateKeyStatusBadge() {
+            const key = getSavedApiKey();
+            const badge = document.getElementById('key-status-badge');
+            if (!badge) return;
+            if (key) {
+                badge.className = "text-xs font-medium px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-between";
+                badge.innerHTML = `<span>🟢 Gemini APIキー設定済み（本物のAIモード）</span><button onclick="clearApiKey()" class="underline text-[11px] text-slate-500 hover:text-slate-700">解除</button>`;
+            } else {
+                badge.className = "text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-between";
+                badge.innerHTML = `<span>⚪️ APIキー未設定（高精度ローカルモード）</span><button onclick="openApiKeyModal()" class="underline text-[11px] text-blue-600 font-bold">キーを登録</button>`;
+            }
+        }
 
         function switchTab(tabId) {
             const tabs = ['quiz', 'flashcard', 'ai', 'rules', 'list'];
@@ -585,7 +671,6 @@
             const correctTe = verb.te_kana || verb.te;
             let options = [{ text: correctTe, isCorrect: true, rule: verb.rule }];
 
-            // Generate smart distractors based on common student errors
             if (verb.group === 1) {
                 if (verb.masu.endsWith("きます")) {
                     const stem = verb.masu.replace(/きます$/, '');
@@ -623,7 +708,6 @@
                 options.push({ text: stem + "った", isCorrect: false, err: "3グループの「〜します」は「〜して」になります。" });
             }
 
-            // Pool of possible distractor suffixes
             const pool = ["て", "った", "いて", "ちて", "んで", "ぎて", "きて", "いで"];
             const stem = verb.masu.replace(/ます$/, '');
 
@@ -634,7 +718,6 @@
                 }
             }
 
-            // Deduplicate choices
             const uniqueOptions = [];
             const seen = new Set();
             for (const opt of options) {
@@ -654,7 +737,7 @@
             const feedback = document.getElementById('quiz-feedback');
 
             buttons.forEach((btn, i) => {
-                btn.onclick = null; // Disable further clicks
+                btn.onclick = null;
                 const opt = allOpts[i];
 
                 if (opt.isCorrect) {
@@ -710,7 +793,6 @@
             if (!currentFlashcardList.length) return;
             const verb = currentFlashcardList[flashcardIndex];
 
-            // Always reset 3D card back to front face when updating
             const cardInner = document.getElementById('flashcard-inner');
             if (cardInner) cardInner.classList.remove('rotate-y-180');
 
@@ -749,9 +831,12 @@
             renderFlashcard();
         }
 
+        // Gemini API Call (Uses user's stored localStorage key)
         async function callGeminiAPI(userPrompt, systemPrompt = "") {
-            const apiKey = ""; // Canvas environment provides runtime key automatically
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            const apiKey = getSavedApiKey();
+            if (!apiKey) return null; // Fallback to local if key is not set
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
             const payload = {
                 contents: [{ parts: [{ text: userPrompt }] }]
@@ -760,24 +845,19 @@
                 payload.systemInstruction = { parts: [{ text: systemPrompt }] };
             }
 
-            let delay = 1000;
-            for (let i = 0; i < 3; i++) {
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                        if (text) return text;
-                    }
-                } catch (e) {
-                    // Retry exponential backoff
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) return text;
                 }
-                await new Promise(resolve => setTimeout(resolve, delay));
-                delay *= 2;
+            } catch (e) {
+                console.error("Gemini API Call Failed:", e);
             }
             return null;
         }
@@ -858,16 +938,18 @@
             }
         }
 
+        // Improved local rule checker when offline/keyless
         function evaluateSentenceLocally(sentence) {
             sentence = sentence.trim();
             if (!sentence) return "文を入力してください。（ぶんを にゅうりょく してください。）";
 
             const badPatterns = [
-                { regex: /([あ-んア-ン一-龠]+)びて/g, err: "「〜びます」は「〜んで」になります。（例：あそびます ➔ あそんで）" },
-                { regex: /([あ-んア-ン一-龠]+)みて/g, err: "「〜みます」は「〜んで」になります。（例：のみます ➔ のんで）" },
-                { regex: /([あ-んア-ン一-龠]+)きて/g, err: "「〜きます」は「〜いて」になります（「いきます」を除く）。（例：なきます ➔ ないて）" },
-                { regex: /([あ-んア-ン一-龠]+)ぎて/g, err: "「〜ぎます」は「〜いで」になります。（例：いそぎます ➔ いそいで）" },
-                { regex: /([あ-んア-ン一-龠]+)ちて/g, err: "「〜ちます」は「〜って」になります。（例：たちます ➔ たって）" },
+                { regex: /([あ-んア-ン一-龠]+)(もら|あい|つかい|はらい|おもい|すい|あらい|かよい|ちがい|てつだい)て/g, err: "「〜い・ち・り・ます」は「〜って」になります。（例：もらいて ❌ ➔ もらって ⭕️）" },
+                { regex: /([あ-んア-ン一-龠]+)びて/g, err: "「〜びます」は「〜んで」になります。（例：あそびて ❌ ➔ あそんで ⭕️）" },
+                { regex: /([あ-んア-ン一-龠]+)みて/g, err: "「〜みます」は「〜んで」になります。（例：のмите ❌ ➔ のんで ⭕️）" },
+                { regex: /([あ-んア-ン一-龠]+)りて/g, err: "「〜ります」は「〜って」になります。（例：はしりて ❌ ➔ はしって ⭕️）" },
+                { regex: /([あ-んア-ン一-龠]+)ちて/g, err: "「〜ちます」は「〜って」になります。（例：まちて ❌ ➔ まって ⭕️）" },
+                { regex: /([あ-んア-ン一-龠]+)ぎて/g, err: "「〜ぎます」は「〜いで」になります。（例：いそぎて ❌ ➔ いそいで ⭕️）" },
                 { regex: /([あ-んア-ン一-龠]+)いきて/g, err: "「いきます」は例外です。「いって」になります。" },
                 { regex: /([あ-んア-ン一-龠]+)ますて/g, err: "「ます」をとって「て」にかえてください。（例：たべますて ❌ ➔ たべて ⭕️）" }
             ];
