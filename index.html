@@ -381,7 +381,7 @@
             { kanji: "<ruby>見<rt>み</rt></ruby>ます", masu: "みます", group: 2, te: "見て", te_kana: "みて", rule: "ます ➔ て", en: "to watch / see", zh: "看", vi: "xem", id: "melihat", km: "មើល", uz: "ko'rmoq" },
             { kanji: "<ruby>迎<rt>むか</rt></ruby>えます", masu: "むかえます", group: 2, te: "迎えて", te_kana: "むかえて", rule: "ます ➔ て", en: "to welcome / meet", zh: "迎接", vi: "đón", id: "menjemput", km: "ទទួល", uz: "kutib olmoq" },
             { kanji: "やめます", masu: "やめます", group: 2, te: "やめて", te_kana: "やめて", rule: "ます ➔ て", en: "to quit", zh: "放弃", vi: "bỏ/thôi", id: "berhenti", km: "ឈប់", uz: "bosh tortmoq" },
-            { kanji: "やせます", masu: "やせます", group: 2, te: "やせて", te_kana: "やせて", rule: "ます ➔ て", en: "to lose weight", zh: "变瘦", vi: "gầy đi", id: "menjadi kurus", km: "ស្គម", uz: "ozmoq" },
+            { kanji: "やせます", masu: "やせます", group: 2, te: "やせて", te_kana: "やせて", rule: "ます ➔ て", en: "to lose weight", zh: "变瘦", vi: "gầy đi", id: "menjadi kurus", km: "ស្គみ", uz: "ozmoq" },
             { kanji: "<ruby>忘<rt>わす</rt></ruby>れます", masu: "わすれます", group: 2, te: "忘れて", te_kana: "わすれて", rule: "ます ➔ て", en: "to forget", zh: "忘记", vi: "quên", id: "lupa", km: "忘", uz: "unutmoq" },
 
             // III Group
@@ -703,53 +703,49 @@
             renderFlashcard();
         }
 
-        // 高速 Gemini API 呼び出し
+        // 安定版 Gemini API 呼び出し（1.5-flash / 2.0-flash）
         async function callGeminiAPI(userPrompt, systemPrompt = "") {
             const apiKey = getSavedApiKey();
             if (!apiKey) return null;
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const models = ["gemini-1.5-flash", "gemini-2.0-flash"];
+            let lastErrorMessage = "";
 
-            const payload = {
-                contents: [{ parts: [{ text: userPrompt }] }],
-                generationConfig: {
-                    temperature: 0.2,
-                    maxOutputTokens: 300
+            for (const model of models) {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userPrompt }] }],
+                    generationConfig: {
+                        temperature: 0.2,
+                        maxOutputTokens: 300
+                    }
+                };
+                if (systemPrompt) {
+                    payload.systemInstruction = { parts: [{ text: systemPrompt }] };
                 }
-            };
-            if (systemPrompt) {
-                payload.systemInstruction = { parts: [{ text: systemPrompt }] };
-            }
 
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) return text;
-                } else if (data.error && data.error.message) {
-                    const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                    const fbRes = await fetch(fallbackUrl, {
+                try {
+                    const response = await fetch(apiUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    const fbData = await fbRes.json();
-                    if (fbRes.ok) {
-                        return fbData.candidates?.[0]?.content?.parts?.[0]?.text || "応答を取得できませんでした。";
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (text) return text;
+                    } else if (data.error && data.error.message) {
+                        lastErrorMessage = data.error.message;
                     }
-                    return `❌ APIキーを確認してください (${response.status}): ${data.error.message}`;
+                } catch (e) {
+                    console.error(`Error calling ${model}:`, e);
                 }
-            } catch (e) {
-                console.error("Fetch error:", e);
-                return "❌ 通信エラーが発生しました。ネットワークをご確認ください。";
             }
+
+            return `❌ API通信エラー:\n${lastErrorMessage || "APIキーまたはネットワーク状況をご確認ください。"}`;
         }
 
         async function checkSentenceWithAI() {
@@ -762,7 +758,7 @@
 
             showAIResponse("⏳ AIせんせいが かんがえています...");
 
-            const systemPrompt = `あなたは日本語学校の優しい先生です。思考プロセスや英語のメタデータ（Role, Task等）は一切出力せず、以下のフォーマットで学習者に直接、3行程度で短くアドバイスしてください。
+            const systemPrompt = `あなたは日本語学校の優しい先生です。思考プロセスや英語のログ（Role, Task等）は一切出力せず、以下のフォーマットで学習者に直接、3行程度で短くアドバイスしてください。
 
 ⭕️ 正しい文：(ここに修正後の正しい文)
 💡 ポイント：(文法やて形のポイントを易しい日本語で短く解説)`;
