@@ -382,7 +382,7 @@
             { kanji: "<ruby>迎<rt>むか</rt></ruby>えます", masu: "むかえます", group: 2, te: "迎えて", te_kana: "むかえて", rule: "ます ➔ て", en: "to welcome / meet", zh: "迎接", vi: "đón", id: "menjemput", km: "ទទួល", uz: "kutib olmoq" },
             { kanji: "やめます", masu: "やめます", group: 2, te: "やめて", te_kana: "やめて", rule: "ます ➔ て", en: "to quit", zh: "放弃", vi: "bỏ/thôi", id: "berhenti", km: "ឈប់", uz: "bosh tortmoq" },
             { kanji: "やせます", masu: "やせます", group: 2, te: "やせて", te_kana: "やせて", rule: "ます ➔ て", en: "to lose weight", zh: "变瘦", vi: "gầy đi", id: "menjadi kurus", km: "ស្គម", uz: "ozmoq" },
-            { kanji: "<ruby>忘<rt>わす</rt></ruby>れます", masu: "わすれます", group: 2, te: "忘れて", te_kana: "わすれて", rule: "ます ➔ て", en: "to forget", zh: "忘记", vi: "quên", id: "lupa", km: "ភ្លេច", uz: "unutmoq" },
+            { kanji: "<ruby>忘<rt>わす</rt></ruby>れます", masu: "わすれます", group: 2, te: "忘れて", te_kana: "わすれて", rule: "ます ➔ て", en: "to forget", zh: "忘记", vi: "quên", id: "lupa", km: "忘", uz: "unutmoq" },
 
             // III Group
             { kanji: "<ruby>来<rt>き</rt></ruby>ます", masu: "きます", group: 3, te: "来て", te_kana: "きて", rule: "きます ➔ きて", en: "to come", zh: "来", vi: "đến", id: "datang", km: "មក", uz: "kelmoq" },
@@ -401,7 +401,7 @@
             { kanji: "<ruby>相<rt>そう</rt></ruby><ruby>談<rt>だん</rt></ruby>します", masu: "そうだんします", group: 3, te: "相談して", te_kana: "そうだんして", rule: "します ➔ して", en: "to consult", zh: "商量", vi: "thảo luận", id: "berkonsultasi", km: "ពិគ្រោះ", uz: "maslahatlashmoq" },
             { kanji: "<ruby>紹<rt>しょう</rt></ruby><ruby>介<rt>かい</rt></ruby>します", masu: "しょうかいします", group: 3, te: "紹介して", te_kana: "しょうかいして", rule: "します ➔ して", en: "to introduce", zh: "介绍", vi: "giới thiệu", id: "memperkenalkan", km: "ណែនាំ", uz: "tanishtirmoq" },
             { kanji: "<ruby>残<rt>ざん</rt></ruby><ruby>業<rt>ぎょう</rt></ruby>します", masu: "ざんぎょうします", group: 3, te: "残業して", te_kana: "ざんぎょうして", rule: "します ➔ して", en: "to work overtime", zh: "加班", vi: "làm thêm", id: "lembur", km: "ថែមម៉ោង", uz: "ortiqcha ishlamoq" },
-            { kanji: "<ruby>出<rt>しゅっ</rt></ruby><ruby>張<rt>ちょう</rt></ruby>します", masu: "しゅっちょうします", group: 3, te: "出張して", te_kana: "しゅっちょうして", rule: "します ➔ して", en: "to go business trip", zh: "出差", vi: "đi công tác", id: "dinas", km: "បេសកកម្ម", uz: "xizmat safarida bo'lmoq" },
+            { kanji: "<ruby>出<rt>しゅっ</rt></ruby><ruby>張<rt>ちょう</rt></rule>します", masu: "しゅっちょうします", group: 3, te: "出張して", te_kana: "しゅっちょうして", rule: "します ➔ して", en: "to go business trip", zh: "出差", vi: "đi công tác", id: "dinas", km: "បេសកកម្ម", uz: "xizmat safarida bo'lmoq" },
             { kanji: "<ruby>留<rt>りゅう</rt></ruby><ruby>学<rt>がく</rt></ruby>します", masu: "りゅうがくします", group: 3, te: "留学して", te_kana: "りゅうがくして", rule: "します ➔ して", en: "to study abroad", zh: "留学", vi: "du học", id: "studi di luar negeri", km: "សិក្សានៅបរទេស", uz: "chet elda o'qimoq" },
             { kanji: "<ruby>結<rt>けっ</rt></ruby><ruby>婚<rt>こん</rt></ruby>します", masu: "けっこんします", group: 3, te: "結婚して", te_kana: "けっこんして", rule: "します ➔ して", en: "to marry", zh: "结婚", vi: "kết hôn", id: "menikah", km: "រៀបការ", uz: "turmush qurmoq" },
             { kanji: "<ruby>洗<rt>せん</rt></ruby><ruby>濯<rt>たく</rt></ruby>します", masu: "せんたくします", group: 3, te: "洗濯して", te_kana: "せんたくして", rule: "します ➔ して", en: "to wash laundry", zh: "洗衣服", vi: "giặt đồ", id: "mencuci baju", km: "បោកខោអាវ", uz: "kiyim yuvmoq" },
@@ -703,14 +703,13 @@
             renderFlashcard();
         }
 
-        // Gemini Dynamic API Call Logic (Queries available models automatically)
+        // Gemini Dynamic API Call Logic
         async function callGeminiAPI(userPrompt, systemPrompt = "") {
             const apiKey = getSavedApiKey();
             if (!apiKey) return null;
 
             let targetModels = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"];
             
-            // Try fetching active model list from Google
             try {
                 const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
                 if (listRes.ok) {
@@ -847,7 +846,7 @@
             const badPatterns = [
                 { regex: /([あ-んア-ン一-龠]+)(もら|あい|つかい|はらい|おもい|すい|あらい|かよい|ちがい|てつだい)て/g, err: "「〜い・ち・り・ます」は「〜って」になります。（例：もらいて ❌ ➔ もらって ⭕️）" },
                 { regex: /([あ-んア-ン一-龠]+)びて/g, err: "「〜びます」は「〜んで」になります。（例：あそびて ❌ ➔ あそんで ⭕️）" },
-                { regex: /([あ- prototypeア-ン一-龠]+)みて/g, err: "「〜みます」は「〜んで」になります。（例：のみて ❌ ➔ のんで ⭕️）" },
+                { regex: /([あ-んア-ン一-龠]+)みて/g, err: "「〜みます」は「〜んで」になります。（例：のみて ❌ ➔ のんで ⭕️）" },
                 { regex: /([あ-んア-ン一-龠]+)りて/g, err: "「〜ります」は「〜って」になります。（例：はしりて ❌ ➔ はしって ⭕️）" },
                 { regex: /([あ-んア-ン一-龠]+)ちて/g, err: "「〜ちます」は「〜って」になります。（例：まちて ❌ ➔ まって ⭕️）" },
                 { regex: /([あ-んア-ン一-龠]+)ぎて/g, err: "「〜ぎます」は「〜いで」になります。（例：いそぎて ❌ ➔ いそいで ⭕️）" },
@@ -882,7 +881,7 @@
                 const stem = verbStr.replace(/ぎます$/, '');
                 return `💡 「${verbStr}」の てけい：\n• グループ：1グループ\n• てけい：${stem}いで\n• ルール：「〜ぎます」は「〜いで」になります。`;
             } else if (verbStr.endsWith("みます") || verbStr.endsWith("びます") || verbStr.endsWith("にます")) {
-                const stem = verbStr.replace(/(み|び|轻)ます$/, '');
+                const stem = verbStr.replace(/(み|び|に)ます$/, '');
                 return `💡 「${verbStr}」の てけい：\n• グループ：1グループ\n• てけい：${stem}んで\n• ルール：「〜み・び・に・ます」は「〜んで」になります。`;
             } else if (verbStr.endsWith("います") || verbStr.endsWith("ちます") || verbStr.endsWith("ります")) {
                 const stem = verbStr.replace(/(い|ち|り)ます$/, '');
