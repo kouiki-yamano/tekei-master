@@ -14,46 +14,15 @@
             color: #0f172a;
             -webkit-tap-highlight-color: transparent;
         }
-
-        /* Ruby typography styling */
-        ruby {
-            ruby-position: over;
-        }
-        rt {
-            font-size: 0.65em;
-            color: #2563eb;
-            font-weight: 600;
-            line-height: 1.2;
-        }
-
-        /* 3D Card Flip Animation */
-        .perspective-1000 {
-            perspective: 1000px;
-        }
-        .transform-style-3d {
-            transform-style: preserve-3d;
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .backface-hidden {
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-        }
-        .rotate-y-180 {
-            transform: rotateY(180deg);
-        }
-
-        /* Custom scrollbars */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 9999px;
-        }
+        ruby { ruby-position: over; }
+        rt { font-size: 0.65em; color: #2563eb; font-weight: 600; line-height: 1.2; }
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-between p-3 sm:p-6 bg-slate-50 text-slate-900">
@@ -99,7 +68,6 @@
 
         <!-- VIEW 1: RENSHUU (Quiz Practice) -->
         <section id="view-quiz" class="flex-1 flex flex-col space-y-4">
-            <!-- Group Filter Pills -->
             <div class="flex items-center justify-between bg-white p-2 rounded-xl border border-slate-200/80 shadow-sm text-xs sm:text-sm">
                 <span class="font-medium text-slate-500 px-2">グループ:</span>
                 <div class="flex space-x-1">
@@ -110,41 +78,30 @@
                 </div>
             </div>
 
-            <!-- Quiz Card -->
             <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm flex flex-col items-center text-center relative overflow-hidden">
                 <div class="w-full flex justify-between items-center text-xs text-slate-400 font-medium mb-4">
                     <span id="quiz-streak">れんぞく: 0</span>
                     <span id="quiz-group-tag" class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md font-semibold">Ⅰグループ</span>
                 </div>
 
-                <!-- Main Verb Display -->
                 <div id="quiz-verb-kanji" class="text-3xl sm:text-4xl font-bold text-slate-800 my-4 min-h-[60px] flex items-baseline justify-center">
                     <ruby>会<rt>あ</rt></ruby>います
                 </div>
 
-                <div id="quiz-verb-meaning" class="text-sm text-slate-500 font-medium mb-6">
-                    to meet
-                </div>
+                <div id="quiz-verb-meaning" class="text-sm text-slate-500 font-medium mb-6">to meet</div>
 
-                <!-- Options Grid -->
-                <div id="quiz-options" class="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                    <!-- Buttons generated dynamically -->
-                </div>
+                <div id="quiz-options" class="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2"></div>
 
-                <!-- Feedback Explanation Banner -->
-                <div id="quiz-feedback" class="w-full mt-4 p-3 rounded-xl text-left text-xs sm:text-sm hidden transition-all duration-300">
-                </div>
+                <div id="quiz-feedback" class="w-full mt-4 p-3 rounded-xl text-left text-xs sm:text-sm hidden transition-all duration-300"></div>
             </div>
 
             <button onclick="nextQuizQuestion()" id="btn-next-quiz" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md shadow-blue-500/20 transition flex items-center justify-center space-x-2">
-                <span>つぎの もんだい</span>
-                <span>➔</span>
+                <span>つぎの もんだい ➔</span>
             </button>
         </section>
 
         <!-- VIEW 2: TANGOCHOU (Flashcards) -->
         <section id="view-flashcard" class="hidden flex-1 flex flex-col space-y-4">
-            <!-- Group Filter Pills -->
             <div class="flex items-center justify-between bg-white p-2 rounded-xl border border-slate-200/80 shadow-sm text-xs sm:text-sm">
                 <span class="font-medium text-slate-500 px-2">グループ:</span>
                 <div class="flex space-x-1">
@@ -155,50 +112,33 @@
                 </div>
             </div>
 
-            <!-- 3D Flip Flashcard -->
             <div class="perspective-1000 w-full cursor-pointer" onclick="flipFlashcard()">
                 <div id="flashcard-inner" class="transform-style-3d relative w-full h-72 sm:h-80 rounded-2xl shadow-sm border border-slate-200/80 bg-white">
-                    
-                    <!-- FRONT (Masu form) -->
                     <div class="backface-hidden absolute inset-0 w-full h-full p-6 flex flex-col items-center justify-between text-center rounded-2xl bg-white">
                         <div class="w-full flex justify-between items-center text-xs text-slate-400 font-medium">
                             <span id="fc-counter">1 / 132</span>
                             <span id="fc-group-badge" class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-semibold">Ⅰグループ</span>
                         </div>
-
                         <div class="my-auto">
-                            <div id="fc-front-kanji" class="text-4xl sm:text-5xl font-bold text-slate-800 mb-2">
-                                <ruby>会<rt>あ</rt></ruby>います
-                            </div>
+                            <div id="fc-front-kanji" class="text-4xl sm:text-5xl font-bold text-slate-800 mb-2"><ruby>会<rt>あ</rt></ruby>います</div>
                             <p id="fc-front-meaning" class="text-sm text-slate-500 font-medium">to meet</p>
                         </div>
-
                         <p class="text-xs text-blue-500 font-medium">タップして てけいを みる 🔄</p>
                     </div>
-
-                    <!-- BACK (Te form - Soft Apple style light blue) -->
                     <div class="backface-hidden rotate-y-180 absolute inset-0 w-full h-full p-6 flex flex-col items-center justify-between text-center rounded-2xl bg-blue-50/90 border border-blue-200/80 backdrop-blur-md">
                         <div class="w-full flex justify-between items-center text-xs text-blue-400 font-medium">
                             <span>てけい</span>
                             <span id="fc-back-group-badge" class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md font-semibold">Ⅰグループ</span>
                         </div>
-
                         <div class="my-auto">
-                            <div id="fc-back-te" class="text-4xl sm:text-5xl font-extrabold text-blue-600 mb-3">
-                                あって
-                            </div>
-                            <div id="fc-back-rule" class="bg-white/90 border border-blue-100 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm text-slate-700 font-semibold shadow-xs inline-block">
-                                い・ち・り ➔ って
-                            </div>
+                            <div id="fc-back-te" class="text-4xl sm:text-5xl font-extrabold text-blue-600 mb-3">あって</div>
+                            <div id="fc-back-rule" class="bg-white/90 border border-blue-100 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm text-slate-700 font-semibold shadow-xs inline-block">い・ち・り ➔ って</div>
                         </div>
-
                         <p class="text-xs text-slate-400 font-medium">タップして もどる 🔄</p>
                     </div>
-
                 </div>
             </div>
 
-            <!-- Flashcard Navigation Controls -->
             <div class="grid grid-cols-2 gap-3">
                 <button onclick="prevFlashcard()" class="py-3 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-xl border border-slate-200 shadow-xs transition flex items-center justify-center space-x-1">
                     <span>⬅️ まえへ</span>
@@ -220,7 +160,6 @@
                             <p class="text-xs text-slate-500">さくぶんの チェックや どうしの しつもんが できます。</p>
                         </div>
                     </div>
-                    <!-- API Key Settings Button -->
                     <button onclick="openApiKeyModal()" class="px-3 py-1.5 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold border border-amber-200 rounded-xl transition flex items-center space-x-1">
                         <span>🔑 APIキー設定</span>
                     </button>
@@ -230,7 +169,6 @@
                     <span>状態: 読み込み中...</span>
                 </div>
 
-                <!-- Sentence Checker Box -->
                 <div class="space-y-2">
                     <label class="block text-xs font-semibold text-slate-700">✍️ じぶんの ぶんを チェック</label>
                     <textarea id="ai-sentence-input" rows="2" placeholder="れい：あさ おきて、ごはんを たべます。" class="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"></textarea>
@@ -241,7 +179,6 @@
 
                 <hr class="border-slate-100">
 
-                <!-- Dynamic Verb Lookup -->
                 <div class="space-y-2">
                     <label class="block text-xs font-semibold text-slate-700">❓ どんなどうしでも「〇〇の てけいは？」ときく</label>
                     <div class="flex space-x-2">
@@ -253,12 +190,10 @@
                 </div>
             </div>
 
-            <!-- AI Output Card -->
             <div id="ai-response-card" class="bg-blue-50/80 border border-blue-200 p-4 rounded-2xl hidden transition-all duration-300">
                 <div class="flex items-start space-x-2">
                     <span class="text-xl">💡</span>
-                    <div id="ai-response-text" class="text-sm text-slate-800 font-medium whitespace-pre-line leading-relaxed">
-                    </div>
+                    <div id="ai-response-text" class="text-sm text-slate-800 font-medium whitespace-pre-line leading-relaxed"></div>
                 </div>
             </div>
         </section>
@@ -267,56 +202,26 @@
         <section id="view-rules" class="hidden flex-1 flex flex-col space-y-4">
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
                 <h2 class="font-bold text-slate-800 text-base border-b border-slate-100 pb-2">てけいのかたち ルール</h2>
-
-                <!-- Group 1 Rules -->
                 <div class="space-y-2">
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-md">Ⅰグループ</span>
-                    </div>
+                    <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-md">Ⅰグループ</span>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                            <p class="font-bold text-slate-700">〜い・ち・り・ます ➔ <span class="text-blue-600">〜って</span></p>
-                            <p class="text-slate-500">あいます ➔ あって / まちます ➔ まって</p>
-                        </div>
-                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                            <p class="font-bold text-slate-700">〜み・び・に・ます ➔ <span class="text-blue-600">〜んで</span></p>
-                            <p class="text-slate-500">のみます ➔ のんで / よびます ➔ よんで</p>
-                        </div>
-                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                            <p class="font-bold text-slate-700">〜き・ます ➔ <span class="text-blue-600">〜いて</span></p>
-                            <p class="text-slate-500">かきます ➔ かいて</p>
-                        </div>
-                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                            <p class="font-bold text-slate-700">〜ぎ・ます ➔ <span class="text-blue-600">〜いで</span></p>
-                            <p class="text-slate-500">いそぎます ➔ いそいで</p>
-                        </div>
-                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                            <p class="font-bold text-slate-700">〜し・ます ➔ <span class="text-blue-600">〜して</span></p>
-                            <p class="text-slate-500">はなします ➔ はなして</p>
-                        </div>
-                        <div class="p-2.5 bg-amber-50 rounded-xl border border-amber-200/60">
-                            <p class="font-bold text-amber-800">⚠️ れいがい（Exception）</p>
-                            <p class="text-amber-700">いきます ➔ <span class="font-bold">いって</span></p>
-                        </div>
+                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><p class="font-bold text-slate-700">〜い・ち・り・ます ➔ <span class="text-blue-600">〜って</span></p><p class="text-slate-500">あいます ➔ あって / まちます ➔ まって</p></div>
+                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><p class="font-bold text-slate-700">〜み・び・に・ます ➔ <span class="text-blue-600">〜んで</span></p><p class="text-slate-500">のみます ➔ のんで / よびます ➔ よんで</p></div>
+                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><p class="font-bold text-slate-700">〜き・ます ➔ <span class="text-blue-600">〜いて</span></p><p class="text-slate-500">かきます ➔ かいて</p></div>
+                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><p class="font-bold text-slate-700">〜ぎ・ます ➔ <span class="text-blue-600">〜いで</span></p><p class="text-slate-500">いそぎます ➔ いそいで</p></div>
+                        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><p class="font-bold text-slate-700">〜し・ます ➔ <span class="text-blue-600">〜して</span></p><p class="text-slate-500">はなします ➔ はなして</p></div>
+                        <div class="p-2.5 bg-amber-50 rounded-xl border border-amber-200/60"><p class="font-bold text-amber-800">⚠️ れいがい（Exception）</p><p class="text-amber-700">いきます ➔ <span class="font-bold">いって</span></p></div>
                     </div>
                 </div>
-
-                <!-- Group 2 Rules -->
                 <div class="space-y-2 pt-2 border-t border-slate-100">
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-md">Ⅱグループ</span>
-                    </div>
+                    <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-md">Ⅱグループ</span>
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
                         <p class="font-bold text-slate-700">「ます」をとって <span class="text-blue-600 font-bold">「て」</span>をつける</p>
                         <p class="text-slate-500 mt-1">たべます ➔ たべて / みます ➔ みて / おきます ➔ おきて</p>
                     </div>
                 </div>
-
-                <!-- Group 3 Rules -->
                 <div class="space-y-2 pt-2 border-t border-slate-100">
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded-md">Ⅲグループ</span>
-                    </div>
+                    <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded-md">Ⅲグループ</span>
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
                         <p class="font-bold text-slate-700">きます ➔ <span class="text-blue-600">きて</span></p>
                         <p class="font-bold text-slate-700">します ➔ <span class="text-blue-600">して</span></p>
@@ -325,9 +230,8 @@
             </div>
         </section>
 
-        <!-- VIEW 5: VERB LIST / DICTIONARY -->
+        <!-- VIEW 5: VERB LIST -->
         <section id="view-list" class="hidden flex-1 flex flex-col space-y-3">
-            <!-- Search Bar & Filters -->
             <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-2">
                 <input id="list-search-input" oninput="renderVerbList()" type="text" placeholder="けんさく（例: たべます / eat）" class="flex-1 p-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
                 <select id="list-group-filter" onchange="renderVerbList()" class="p-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition">
@@ -337,11 +241,7 @@
                     <option value="3">Ⅲグループ</option>
                 </select>
             </div>
-
-            <!-- Scrollable List Container -->
-            <div id="verb-list-container" class="space-y-2 overflow-y-auto max-h-[550px] pr-1">
-                <!-- Verb items rendered dynamically -->
-            </div>
+            <div id="verb-list-container" class="space-y-2 overflow-y-auto max-h-[550px] pr-1"></div>
         </section>
 
     </main>
@@ -355,7 +255,7 @@
             </div>
             <p class="text-xs text-slate-500 leading-relaxed">
                 Gemini APIキーを登録すると、高度なAI添削機能が使えます。<br>
-                <b>🔒 安全性:</b> キーはお使いの端末（ブラウザ）にのみ保存され、サーバー等に送信・公開されることはありません。
+                <b>🔒 安全性:</b> キーはお使いの端末（ブラウザ）にのみ保存され、外部へ公開されることはありません。
             </p>
             <input id="api-key-input" type="text" placeholder="AQ.Ab8RN..." class="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none font-mono">
             
@@ -370,18 +270,15 @@
         </div>
     </div>
 
-    <!-- Footer -->
     <footer class="mt-6 text-center text-xs text-slate-400">
         てけいマスター &copy; Japanese Learning Tool
     </footer>
 
     <script>
-        // Storage Key
         const STORAGE_KEY = "tekei_master_gemini_key";
 
-        // Full dataset of 132 verbs with verified accuracy
         const RAW_VERBS = [
-            // I Group (64 verbs)
+            // I Group
             { kanji: "<ruby>会<rt>あ</rt></ruby>います", masu: "あいます", group: 1, te: "あって", te_kana: "あって", rule: "い・ち・り ➔ って", en: "to meet", zh: "见面", vi: "gặp", id: "bertemu", km: "ជួប", uz: "uchrashmoq" },
             { kanji: "<ruby>洗<rt>あら</rt></ruby>います", masu: "あらいます", group: 1, te: "洗って", te_kana: "あらって", rule: "い・ち・り ➔ って", en: "to wash", zh: "洗", vi: "rửa", id: "mencuci", km: "លាង", uz: "yuvmoq" },
             { kanji: "<ruby>言<rt>い</rt></ruby>います", masu: "いいます", group: 1, te: "言って", te_kana: "いって", rule: "い・ち・り ➔ って", en: "to say", zh: "说", vi: "nói", id: "berkata", km: "និយាយ", uz: "demoq" },
@@ -421,7 +318,7 @@
             { kanji: "<ruby>通<rt>とお</rt></ruby>ります", masu: "とおリます", group: 1, te: "通って", te_kana: "とおって", rule: "い・ち・り ➔ って", en: "to pass through", zh: "通过", vi: "đi qua", id: "melewati", km: "ឆ្លងកាត់", uz: "o'tmoq" },
             { kanji: "<ruby>止<rt>と</rt></ruby>まります", masu: "とまります", group: 1, te: "止まって", te_kana: "とまって", rule: "い・ち・り ➔ って", en: "to stop", zh: "停止", vi: "dừng", id: "berhenti", km: "ឈប់", uz: "to'xtamoq" },
             { kanji: "<ruby>取<rt>と</rt></ruby>ります", masu: "とります", group: 1, te: "取って", te_kana: "とって", rule: "い・ち・り ➔ って", en: "to take", zh: "拿", vi: "lấy", id: "mengambil", km: "យក", uz: "olmoq" },
-            { kanji: "<ruby>直<rt>なお</rt></ruby>します", masu: "なおします", group: 1, te: "直して", te_kana: "なおして", rule: "し ➔ して", en: "to repair / fix", zh: "修理", vi: "sửa", id: "memperbaiki", km: "ជួせ", uz: "tuzatmoq" },
+            { kanji: "<ruby>直<rt>なお</rt></ruby>します", masu: "なおします", group: 1, te: "直して", te_kana: "なおして", rule: "し ➔ して", en: "to repair / fix", zh: "修理", vi: "sửa", id: "memperbaiki", km: "ជួសជុល", uz: "tuzatmoq" },
             { kanji: "<ruby>成<rt>な</rt></ruby>ります", masu: "なります", group: 1, te: "成って", te_kana: "なって", rule: "い・ち・り ➔ って", en: "to become", zh: "变成", vi: "trở thành", id: "menjadi", km: "ក្លាយជា", uz: "bo'lmoq" },
             { kanji: "<ruby>脱<rt>ぬ</rt></ruby>ぎます", masu: "ぬぎます", group: 1, te: "脱いで", te_kana: "ぬいで", rule: "ぎ ➔ いで", en: "to take off (clothes)", zh: "脱", vi: "cởi", id: "melepas", km: "ដោះ", uz: "yechmoq" },
             { kanji: "<ruby>登<rt>のぼ</rt></ruby>ります", masu: "のぼります", group: 1, te: "登って", te_kana: "のぼって", rule: "い・ち・り ➔ って", en: "to climb", zh: "攀登", vi: "leo", id: "mendaki", km: "ឡើង", uz: "mormoq" },
@@ -447,7 +344,7 @@
             { kanji: "<ruby>渡<rt>わた</rt></ruby>します", masu: "わたします", group: 1, te: "渡して", te_kana: "わたして", rule: "し ➔ して", en: "to hand over", zh: "递交", vi: "trao", id: "menyerahkan", km: "ប្រគល់", uz: "topshirmoq" },
             { kanji: "<ruby>渡<rt>わた</rt></ruby>ります", masu: "わたります", group: 1, te: "渡って", te_kana: "わたって", rule: "い・ち・り ➔ って", en: "to cross", zh: "过（街）", vi: "băng qua", id: "menyeberang", km: "ឆ្លង", uz: "kesib o'tmoq" },
 
-            // II Group (38 verbs)
+            // II Group
             { kanji: "<ruby>開<rt>あ</rt></ruby>けます", masu: "あけます", group: 2, te: "開けて", te_kana: "あけて", rule: "ます ➔ て", en: "to open", zh: "打开", vi: "mở", id: "membuka", km: "បើក", uz: "ochmoq" },
             { kanji: "あげます", masu: "あげます", group: 2, te: "あげて", te_kana: "あげて", rule: "ます ➔ て", en: "to give", zh: "给", vi: "cho", id: "memberi", km: "ឱ្យ", uz: "bermoq" },
             { kanji: "<ruby>集<rt>あつ</rt></ruby>めます", masu: "あつめます", group: 2, te: "集めて", te_kana: "あつめて", rule: "ます ➔ て", en: "to collect", zh: "收集", vi: "thu thập", id: "mengumpulkan", km: "ប្រមូល", uz: "yig'moq" },
@@ -487,7 +384,7 @@
             { kanji: "やせます", masu: "やせます", group: 2, te: "やせて", te_kana: "やせて", rule: "ます ➔ て", en: "to lose weight", zh: "变瘦", vi: "gầy đi", id: "menjadi kurus", km: "ស្គម", uz: "ozmoq" },
             { kanji: "<ruby>忘<rt>わす</rt></ruby>れます", masu: "わすれます", group: 2, te: "忘れて", te_kana: "わすれて", rule: "ます ➔ て", en: "to forget", zh: "忘记", vi: "quên", id: "lupa", km: "ភ្លេច", uz: "unutmoq" },
 
-            // III Group (30 verbs)
+            // III Group
             { kanji: "<ruby>来<rt>き</rt></ruby>ます", masu: "きます", group: 3, te: "来て", te_kana: "きて", rule: "きます ➔ きて", en: "to come", zh: "来", vi: "đến", id: "datang", km: "មក", uz: "kelmoq" },
             { kanji: "します", masu: "します", group: 3, te: "して", te_kana: "して", rule: "します ➔ して", en: "to do", zh: "做", vi: "làm", id: "melakukan", km: "ធ្វើ", uz: "bajarmoq" },
             { kanji: "<ruby>買<rt>かい</rt></ruby><ruby>物<rt>もの</rt></ruby>します", masu: "かいものします", group: 3, te: "買い物して", te_kana: "かいものして", rule: "します ➔ して", en: "to shop", zh: "购物", vi: "mua sắm", id: "berbelanja", km: "ទិញអីវ៉ាន់", uz: "xarid qilmoq" },
@@ -516,11 +413,10 @@
             { kanji: "<ruby>参<rt>さん</rt></ruby><ruby>加<rt>か</rt></ruby>します", masu: "さんかします", group: 3, te: "参加して", te_kana: "さんかして", rule: "します ➔ して", en: "to participate", zh: "参加", vi: "tham gia", id: "berpartisipasi", km: "ចូលរួម", uz: "qatnashmoq" },
             { kanji: "<ruby>輸<rt>ゆ</rt></ruby><ruby>出<rt>しゅつ</rt></ruby>します", masu: "ゆしゅつします", group: 3, te: "輸出して", te_kana: "ゆしゅつして", rule: "します ➔ して", en: "to export", zh: "出口", vi: "xuất khẩu", id: "mengaekspor", km: "នាំចេញ", uz: "eksport qilmoq" },
             { kanji: "<ruby>輸<rt>ゆ</rt></ruby><ruby>入<rt>にゅう</rt></ruby>します", masu: "ゆにゅうします", group: 3, te: "輸入して", te_kana: "ゆにゅうして", rule: "します ➔ して", en: "to import", zh: "进口", vi: "nhập khẩu", id: "mengimpor", km: "នាំចូល", uz: "import qilmoq" },
-            { kanji: "<ruby>発<rt>はつ</rt></ruby><ruby>明<rt>めい</rt></ruby>します", masu: "はつめいします", group: 3, te: "発明して", te_kana: "はつめいして", rule: "します ➔ して", en: "to invent", zh: "发明", vi: "phát minh", id: "menemukan", km: "បង្កើតថ្មី", uz: "ixtiro qilmoq" },
+            { kanji: "<ruby>発<rt>はつ</rt></ruby><ruby>明<rt>めい</rt></ruby>します", masu: "はつめいします", group: 3, te: "発明して", te_kana: "はつめいして", rule: "します ➔ して", en: "to invent", zh: "发明", vi: "phát minh", id: "menenumkan", km: "បង្កើតថ្មី", uz: "ixtiro qilmoq" },
             { kanji: "<ruby>発<rt>はっ</rt></ruby><ruby>見<rt>けん</rt></ruby>します", masu: "はっけんします", group: 3, te: "発見して", te_kana: "はっけんして", rule: "します ➔ して", en: "to discover", zh: "发现", vi: "phát hiện", id: "menemukan", km: "រកឃើញ", uz: "kashf etmoq" }
         ];
 
-        // Global State Variables
         let currentLang = 'ja';
         let currentQuizGroup = 'all';
         let currentFlashcardGroup = 'all';
@@ -536,7 +432,6 @@
             updateKeyStatusBadge();
         };
 
-        // API Key Management Functions
         function getSavedApiKey() {
             return localStorage.getItem(STORAGE_KEY) || "";
         }
@@ -610,11 +505,7 @@
             ['all', '1', '2', '3'].forEach(g => {
                 const btn = document.getElementById(`btn-group-${g}`);
                 if (btn) {
-                    if (g === group) {
-                        btn.className = "px-3 py-1 rounded-lg bg-blue-600 text-white font-medium";
-                    } else {
-                        btn.className = "px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200";
-                    }
+                    btn.className = (g === group) ? "px-3 py-1 rounded-lg bg-blue-600 text-white font-medium" : "px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200";
                 }
             });
             resetQuiz();
@@ -675,35 +566,23 @@
                     if (verb.masu === "いきます") {
                         options.push({ text: stem + "いて", isCorrect: false, err: "「いきます」は れいがい です。「いって」になります。" });
                     }
-                    options.push({ text: stem + "きて", isCorrect: false, err: "「〜きます」は「〜いて」になります。（き ❌ ➔ いて ⭕️）" });
-                    options.push({ text: stem + "った", isCorrect: false, err: "てけいは「〜いて」です。" });
+                    options.push({ text: stem + "きて", isCorrect: false, err: "「〜きます」は「〜いて」になります。" });
                 } else if (verb.masu.endsWith("ぎます")) {
                     const stem = verb.masu.replace(/ぎます$/, '');
                     options.push({ text: stem + "ぎて", isCorrect: false, err: "「〜ぎます」は「〜いで」になります。" });
-                    options.push({ text: stem + "いて", isCorrect: false, err: "「〜ぎます」は「〜いで」になります（「で」がつきます）。" });
                 } else if (verb.masu.endsWith("います") || verb.masu.endsWith("ちます") || verb.masu.endsWith("ります")) {
                     const stem = verb.masu.replace(/(い|ち|り)ます$/, '');
                     options.push({ text: stem + "いて", isCorrect: false, err: "い・ち・り は「〜って」になります。" });
-                    options.push({ text: stem + "て", isCorrect: false, err: "い・ち・り は「〜って」になります。" });
                 } else if (verb.masu.endsWith("みます") || verb.masu.endsWith("びます") || verb.masu.endsWith("にます")) {
                     const stem = verb.masu.replace(/(み|び|に)ます$/, '');
                     options.push({ text: stem + "て", isCorrect: false, err: "み・び・に は「〜んで」になります。" });
-                    options.push({ text: stem + "で", isCorrect: false, err: "み・び・に は「〜んで」になります。" });
-                } else if (verb.masu.endsWith("します")) {
-                    const stem = verb.masu.replace(/します$/, '');
-                    options.push({ text: stem + "ちて", isCorrect: false, err: "「〜します」は「〜して」になります。" });
-                } else {
-                    const stem = verb.masu.replace(/ます$/, '');
-                    options.push({ text: stem + "て", isCorrect: false, err: "1グループのルールを かくにんしましょう。" });
                 }
             } else if (verb.group === 2) {
                 const stem = verb.masu.replace(/ます$/, '');
                 options.push({ text: stem + "った", isCorrect: false, err: "2グループは「ます」をとって「て」をつけるだけです。" });
-                options.push({ text: stem + "いて", isCorrect: false, err: "2グループは「ます」をとって「て」をつけるだけです。" });
             } else {
                 const stem = verb.masu.replace(/ます$/, '');
                 options.push({ text: stem + "て", isCorrect: false, err: "3グループの「〜します」は「〜して」になります。" });
-                options.push({ text: stem + "った", isCorrect: false, err: "3グループの「〜します」は「〜して」になります。" });
             }
 
             const pool = ["て", "った", "いて", "ちて", "んで", "ぎて", "きて", "いで"];
@@ -737,7 +616,6 @@
             buttons.forEach((btn, i) => {
                 btn.onclick = null;
                 const opt = allOpts[i];
-
                 if (opt.isCorrect) {
                     btn.className = "w-full py-3.5 px-4 bg-emerald-500 text-white border border-emerald-600 rounded-xl text-base font-bold shadow-md";
                 } else if (btn === selectedBtn) {
@@ -761,7 +639,7 @@
                 document.getElementById('quiz-streak').innerText = `れんぞく: 0`;
                 if (feedback) {
                     feedback.className = "w-full mt-4 p-3 rounded-xl text-left text-xs sm:text-sm bg-red-50 border border-red-200 text-red-800 font-medium";
-                    feedback.innerHTML = `❌ <b>ざんねん！</b> ${selectedOpt.err || ''}<br>正解（せいかい）: <b>${currentQuizVerb.te_kana || currentQuizVerb.te}</b>`;
+                    feedback.innerHTML = `❌ <b>ざんねん！</b> ${selectedOpt.err || ''}<br>正解: <b>${currentQuizVerb.te_kana || currentQuizVerb.te}</b>`;
                 }
             }
         }
@@ -771,11 +649,7 @@
             ['all', '1', '2', '3'].forEach(g => {
                 const btn = document.getElementById(`fc-group-${g}`);
                 if (btn) {
-                    if (g === group) {
-                        btn.className = "px-3 py-1 rounded-lg bg-blue-600 text-white font-medium";
-                    } else {
-                        btn.className = "px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200";
-                    }
+                    btn.className = (g === group) ? "px-3 py-1 rounded-lg bg-blue-600 text-white font-medium" : "px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200";
                 }
             });
             resetFlashcards();
@@ -829,15 +703,34 @@
             renderFlashcard();
         }
 
-        // Gemini API Call with Auto Model Fallback & Error Handling
+        // Gemini Dynamic API Call Logic (Queries available models automatically)
         async function callGeminiAPI(userPrompt, systemPrompt = "") {
             const apiKey = getSavedApiKey();
             if (!apiKey) return null;
 
-            const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+            let targetModels = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"];
+            
+            // Try fetching active model list from Google
+            try {
+                const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                if (listRes.ok) {
+                    const listData = await listRes.json();
+                    if (listData.models && listData.models.length > 0) {
+                        const available = listData.models
+                            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
+                            .map(m => m.name.replace("models/", ""));
+                        if (available.length > 0) {
+                            targetModels = [...new Set([...available, ...targetModels])];
+                        }
+                    }
+                }
+            } catch(e) {
+                console.log("Model list check fallback:", e);
+            }
+
             let lastErrorMessage = "";
 
-            for (const model of models) {
+            for (const model of targetModels) {
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
                 const payload = {
@@ -859,17 +752,16 @@
                     if (response.ok) {
                         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (text) return text;
-                    } else {
-                        console.error(`Gemini API Error (${model}):`, data);
-                        if (data.error && data.error.message) {
-                            lastErrorMessage = data.error.message;
-                            if (response.status === 400 || response.status === 403) {
-                                return `❌ APIキーエラー (${response.status}):\n${data.error.message}\n\nキー（AQ...）が正しく入力されているか「🔑 APIキー設定」から再確認してください。`;
+                    } else if (data.error && data.error.message) {
+                        lastErrorMessage = data.error.message;
+                        if (response.status === 400 || response.status === 403) {
+                            if (data.error.message.includes("API key")) {
+                                return `❌ APIキーエラー (${response.status}):\nAPIキーが正しくありません。「🔑 APIキー設定」からコピーし直してください。`;
                             }
                         }
                     }
                 } catch (e) {
-                    console.error(`Network Error (${model}):`, e);
+                    console.error(`Fetch error (${model}):`, e);
                 }
             }
 
@@ -898,16 +790,10 @@
 学習者がどのような文脈や状況を伝えたかったのかを深く想像してください。
 文法の間違いや助詞の使い方から、複数の意味（例：能動の「〜して」なのか、受身の「〜されて」なのか等）が考えられる場合は、決めつけずに「確認の質問（ワンクッション）」を入れてから、状況に応じた正しい文を提示してください。
 
-■ 例：「おとうとは、ちちに おこりて ないていました」
-➔ 「確認させてくださいね！『父が怒った』のですか？それとも『父に怒られた（叱られた）』のですか？
-① 弟が父に向かって怒っていた場合 ➔ 『おとうとは、ちちに おこって、ないていました。』
-② 弟が父に叱られた（怒られた）場合 ➔ 『おとうとは、ちちに おこられて、ないていました。』
-このように、言いたいことに合わせて直しましょう！」
-
 【基本指示】
 1. 応答は初級（N5〜N4レベル）の易しく丁寧な日本語（〜です、〜ます、〜てください等）で行うこと。
 2. 学習者の設定母語（${currentLangName}）で短いサポート解説を加えること。
-3. 間違いの理由（「〜おこりて」は「おこって」や「おこられて」になるなど）を分かりやすく説明すること。`;
+3. 間違いの理由（「〜食べまして」は「〜食べて」になるなど）を分かりやすく説明すること。`;
 
             const userPrompt = `以下の作文のて形と文脈を添削してください。\n\n学習者の作文：「${sentence}」\n学習者の母語：${currentLangName}`;
 
@@ -954,7 +840,6 @@
             }
         }
 
-        // Improved local rule checker when offline/keyless
         function evaluateSentenceLocally(sentence) {
             sentence = sentence.trim();
             if (!sentence) return "文を入力してください。（ぶんを にゅうりょく してください。）";
@@ -962,7 +847,7 @@
             const badPatterns = [
                 { regex: /([あ-んア-ン一-龠]+)(もら|あい|つかい|はらい|おもい|すい|あらい|かよい|ちがい|てつだい)て/g, err: "「〜い・ち・り・ます」は「〜って」になります。（例：もらいて ❌ ➔ もらって ⭕️）" },
                 { regex: /([あ-んア-ン一-龠]+)びて/g, err: "「〜びます」は「〜んで」になります。（例：あそびて ❌ ➔ あそんで ⭕️）" },
-                { regex: /([あ-んア-ン一-龠]+)みて/g, err: "「〜みます」は「〜んで」になります。（例：のみて ❌ ➔ のんで ⭕️）" },
+                { regex: /([あ- prototypeア-ン一-龠]+)みて/g, err: "「〜みます」は「〜んで」になります。（例：のみて ❌ ➔ のんで ⭕️）" },
                 { regex: /([あ-んア-ン一-龠]+)りて/g, err: "「〜ります」は「〜って」になります。（例：はしりて ❌ ➔ はしって ⭕️）" },
                 { regex: /([あ-んア-ン一-龠]+)ちて/g, err: "「〜ちます」は「〜って」になります。（例：まちて ❌ ➔ まって ⭕️）" },
                 { regex: /([あ-んア-ン一-龠]+)ぎて/g, err: "「〜ぎます」は「〜いで」になります。（例：いそぎて ❌ ➔ いそいで ⭕️）" },
@@ -997,7 +882,7 @@
                 const stem = verbStr.replace(/ぎます$/, '');
                 return `💡 「${verbStr}」の てけい：\n• グループ：1グループ\n• てけい：${stem}いで\n• ルール：「〜ぎます」は「〜いで」になります。`;
             } else if (verbStr.endsWith("みます") || verbStr.endsWith("びます") || verbStr.endsWith("にます")) {
-                const stem = verbStr.replace(/(み|び|に)ます$/, '');
+                const stem = verbStr.replace(/(み|び|轻)ます$/, '');
                 return `💡 「${verbStr}」の てけい：\n• グループ：1グループ\n• てけい：${stem}んで\n• ルール：「〜み・び・に・ます」は「〜んで」になります。`;
             } else if (verbStr.endsWith("います") || verbStr.endsWith("ちます") || verbStr.endsWith("ります")) {
                 const stem = verbStr.replace(/(い|ち|り)ます$/, '');
